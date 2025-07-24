@@ -683,6 +683,9 @@ class PipelineProcessor:
                 st.info(f"📈 {len(predicciones_tipo)} días de predicciones generadas para {tipo}")
             
             self.resultados['predicciones'] = predicciones
+            logger.info(f"✅ Predicciones generadas para {len(predicciones)} tipos de llamada")
+            for tipo, preds in predicciones.items():
+                logger.info(f"   - {tipo}: {len(preds)} días de predicciones")
             return True
             
         except Exception as e:
@@ -750,6 +753,13 @@ class PipelineProcessor:
                 st.metric("Modelos", "4")
             with col3:
                 st.metric("Días predichos", "28")
+            
+            # CRÍTICO: Guardar resultados en session state
+            st.session_state.resultados_pipeline = self.resultados
+            logger.info("💾 Resultados guardados en session_state")
+            logger.info(f"   - Claves disponibles: {list(self.resultados.keys())}")
+            if 'predicciones' in self.resultados:
+                logger.info(f"   - Tipos de predicciones: {list(self.resultados['predicciones'].keys())}")
             
             st.success("✅ Pipeline completado - Ve al Dashboard para ver resultados")
             return True

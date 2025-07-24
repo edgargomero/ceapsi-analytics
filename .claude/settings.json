@@ -1,0 +1,62 @@
+{
+  "projectType": "python",
+  "projectName": "CEAPSI Analytics System",
+  "description": "Call center prediction and analysis system with ML models",
+  "framework": "streamlit",
+  "backend": "fastapi",
+  "database": "supabase",
+  "testFramework": "pytest",
+  "hooks": {
+    "user-prompt-submit": {
+      "command": "echo '🔍 Analyzing request...'",
+      "description": "Show processing message on user input"
+    },
+    "post-tool-call": {
+      "command": "echo '✓ Tool execution completed'",
+      "description": "Confirm tool execution"
+    }
+  },
+  "automation": {
+    "auto_save": true,
+    "format_on_save": true,
+    "run_tests": false,
+    "auto_lint": true
+  },
+  "preferences": {
+    "default_model": "claude-3-5-sonnet-20241022",
+    "code_style": "black",
+    "verbose_logs": false,
+    "max_tokens": 4096
+  },
+  "integrations": {
+    "git": {
+      "auto_commit": false,
+      "commit_message_template": "feat: {description}\n\n🤖 Generated with [Claude Code](https://claude.ai/code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>"
+    },
+    "testing": {
+      "framework": "pytest",
+      "run_on_change": false,
+      "coverage": true
+    },
+    "linting": {
+      "tools": ["black", "isort", "flake8"],
+      "auto_fix": true
+    }
+  },
+  "commands": {
+    "start": "streamlit run app.py",
+    "dev": "python scripts/development/run.py",
+    "backend": "cd backend && uvicorn app.main:app --reload --port 8000",
+    "test": "pytest backend/tests/",
+    "format": "cd backend && black . && isort .",
+    "lint": "cd backend && flake8 .",
+    "verify": "python verify_ceapsi.py"
+  },
+  "directories": {
+    "src": "src/",
+    "backend": "backend/",
+    "tests": "backend/tests/",
+    "config": "config/",
+    "scripts": "scripts/"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "commands": {
+    "start": {
+      "command": "streamlit run app.py",
+      "description": "Start the main Streamlit application"
+    },
+    "dev": {
+      "command": "python scripts/development/run.py",
+      "description": "Launch development environment"
+    },
+    "backend": {
+      "command": "cd backend && uvicorn app.main:app --reload --port 8000",
+      "description": "Start FastAPI backend server"
+    },
+    "test": {
+      "command": "cd backend && pytest tests/",
+      "description": "Run all tests with pytest"
+    },
+    "test:unit": {
+      "command": "cd backend && pytest tests/unit/",
+      "description": "Run unit tests"
+    },
+    "test:integration": {
+      "command": "cd backend && pytest tests/integration/",
+      "description": "Run integration tests"
+    },
+    "format": {
+      "command": "cd backend && black . && isort .",
+      "description": "Format code with black and isort"
+    },
+    "lint": {
+      "command": "cd backend && flake8 .",
+      "description": "Run flake8 linting"
+    },
+    "verify": {
+      "command": "python verify_ceapsi.py",
+      "description": "Verify system configuration"
+    },
+    "fix": {
+      "command": "python fix_ceapsi.py",
+      "description": "Fix common system issues"
+    },
+    "install": {
+      "command": "pip install -r requirements.txt",
+      "description": "Install frontend dependencies"
+    },
+    "install:backend": {
+      "command": "pip install -r backend/requirements.txt",
+      "description": "Install backend dependencies"
+    }
+  }
+}

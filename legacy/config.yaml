@@ -1,0 +1,26 @@
+credentials:
+  usernames:
+    admin:
+      email: admin@ceapsi.cl
+      name: Administrador CEAPSI
+      password: $2b$12$tKuSElDgiadrjExo8QZHhuJFV.QjF71n5oNqN19g6EVQgW8DloxS. # admin123
+    analista1:
+      email: analista1@ceapsi.cl
+      name: María González
+      password: $2b$12$dTO4Nr7WFNwvQzRDr76/i.hK1qbo9.yechStwPgOgWOnb7rvxWLZ2 # temp_analista123
+    analista2:
+      email: analista2@ceapsi.cl
+      name: Carlos Rodríguez
+      password: $2b$12$dTO4Nr7WFNwvQzRDr76/i.hK1qbo9.yechStwPgOgWOnb7rvxWLZ2 # temp_analista123
+    viewer:
+      email: viewer@ceapsi.cl
+      name: Usuario Visualización
+      password: $2b$12$Hyz/3aqkFgCXQeOaFaytG.hoh6gQbfC9BYllH.hUpffA9Lp2HJ.o2 # temp_viewer123
+cookie:
+  expiry_days: 30
+  key: ceapsi_random_signature_key_2024_secure
+  name: ceapsi_auth_cookie
+preauthorized:
+  emails:
+  - admin@ceapsi.cl
+  - soporte@ceapsi.cl

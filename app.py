@@ -84,6 +84,15 @@ except Exception as e:
 
 # Importar módulos del sistema con manejo de errores
 try:
+    # Intentar cargar versión refactorizada primero
+    from ui.dashboard_comparacion_v2 import DashboardValidacionCEAPSI_V2
+    DASHBOARD_V2_AVAILABLE = True
+    logger.info("✅ Dashboard v2 (refactorizado) disponible")
+except ImportError as e:
+    logger.warning(f"Dashboard v2 no disponible: {e}")
+    DASHBOARD_V2_AVAILABLE = False
+
+try:
     from ui.dashboard_comparacion import DashboardValidacionCEAPSI
     DASHBOARD_AVAILABLE = True
 except ImportError as e:
@@ -1093,10 +1102,40 @@ def mostrar_seccion_carga_archivos():
 def mostrar_dashboard():
     """Mostrar dashboard con resultados del pipeline - mejorado con UI optimizada"""
     
-    # Inicialización silenciosa del dashboard optimizado
+    # Variable de control para elegir versión
+    usar_v2 = st.session_state.get('usar_dashboard_v2', True)  # Por defecto usar v2
     
-    if DASHBOARD_AVAILABLE:
+    # Selector temporal para testing (remover en producción)
+    with st.sidebar:
+        st.markdown("---")
+        usar_v2 = st.checkbox("🚀 Usar Dashboard v2 (Refactorizado)", value=usar_v2, key="toggle_dashboard_v2")
+        st.session_state.usar_dashboard_v2 = usar_v2
+    
+    # Usar versión v2 si está disponible y seleccionada
+    if usar_v2 and DASHBOARD_V2_AVAILABLE:
         try:
+            logger.info("📊 Usando Dashboard v2 (refactorizado)")
+            dashboard = DashboardValidacionCEAPSI_V2()
+            
+            # Transferir archivo de datos
+            if hasattr(st.session_state, 'archivo_datos') and st.session_state.archivo_datos:
+                dashboard.archivo_datos_manual = st.session_state.archivo_datos
+                dashboard.data_loader.archivo_datos_manual = st.session_state.archivo_datos
+            
+            # Ejecutar dashboard v2
+            dashboard.ejecutar_dashboard()
+            
+        except Exception as e:
+            logger.error(f"Error en dashboard v2: {e}")
+            st.error(f"Error cargando dashboard v2: {e}")
+            st.info("Intentando cargar versión anterior...")
+            # Fallback a versión anterior
+            usar_v2 = False
+    
+    # Si no se usa v2, usar versión original
+    if not usar_v2 and DASHBOARD_AVAILABLE:
+        try:
+            logger.info("📊 Usando Dashboard v1 (original)")
             dashboard = DashboardValidacionCEAPSI()
             
             # Verificar y transferir archivo de datos (sin mensajes duplicados)
@@ -1117,11 +1156,8 @@ def mostrar_dashboard():
             else:
                 st.error(f"Error cargando dashboard: {e}")
             logger.error(f"Error en dashboard: {e}")
-    else:
-        if OPTIMIZED_UI_AVAILABLE:
-            show_status('error', 'Dashboard no disponible')
-        else:
-            st.error("Dashboard no disponible")
+    elif not DASHBOARD_AVAILABLE and not DASHBOARD_V2_AVAILABLE:
+        st.error("❌ Ninguna versión del dashboard está disponible")
 
 def mostrar_card_metrica_mejorada(titulo, valor, descripcion, icono, color="#4CAF50", delta=None):
     """Crea una card de métrica usando componentes optimizados si están disponibles"""

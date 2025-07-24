@@ -23,18 +23,31 @@ class SupabaseAuthManager:
         # Intentar obtener de Streamlit secrets primero, luego de env vars
         if hasattr(st, 'secrets') and 'SUPABASE_URL' in st.secrets:
             self.supabase_url = st.secrets['SUPABASE_URL']
-            # Frontend debe usar ANON KEY, no service role key
-            self.supabase_key = st.secrets.get('SUPABASE_ANON_KEY') or st.secrets.get('SUPABASE_KEY')
+            # Frontend SIEMPRE debe usar ANON KEY, nunca service role key
+            self.supabase_key = st.secrets.get('SUPABASE_ANON_KEY')
+            if not self.supabase_key:
+                # Fallback solo si no hay ANON_KEY definida
+                self.supabase_key = st.secrets.get('SUPABASE_KEY')
         else:
             self.supabase_url = os.getenv('SUPABASE_URL')
-            # Prioritizar anon key para frontend
-            self.supabase_key = os.getenv('SUPABASE_ANON_KEY') or os.getenv('SUPABASE_KEY')
+            # Prioritizar SIEMPRE anon key para frontend
+            self.supabase_key = os.getenv('SUPABASE_ANON_KEY')
+            if not self.supabase_key:
+                # Fallback solo si no hay ANON_KEY definida
+                self.supabase_key = os.getenv('SUPABASE_KEY')
         
         # Validar que no estamos usando service role key en frontend
-        if self.supabase_key and len(self.supabase_key) > 200:
-            logger.warning("⚠️ PELIGRO: Frontend está usando service role key, debería usar anon key")
-        elif self.supabase_key and "anon" not in self.supabase_key:
-            logger.info("Usando key de Supabase para frontend")
+        if self.supabase_key:
+            # Service role keys son típicamente más largas y contienen "service_role"
+            if "service_role" in self.supabase_key or len(self.supabase_key) > 250:
+                logger.error("⚠️ PELIGRO: Frontend está usando SERVICE ROLE KEY - RIESGO DE SEGURIDAD!")
+                logger.error("Por favor configura SUPABASE_ANON_KEY en lugar de usar la service role key")
+                # No continuar con service role key en frontend
+                self.supabase_key = None
+            elif "anon" in self.supabase_key:
+                logger.info("✅ Usando ANON KEY correctamente para frontend")
+            else:
+                logger.warning("⚠️ No se puede determinar el tipo de key - verificar configuración")
         
         self.supabase: Client = None
         

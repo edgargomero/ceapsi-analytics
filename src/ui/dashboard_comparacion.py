@@ -93,7 +93,7 @@ class DashboardValidacionCEAPSI:
         
         return df_limpio, alertas
     
-    def _optimizar_datos_para_plot(self, df, max_puntos=2000, nombre_dataset="Dataset"):
+    def _optimizar_datos_para_plot(self, df, max_puntos=10000, nombre_dataset="Dataset"):
         """Optimiza datasets grandes para visualización eficiente"""
         if df is None or len(df) == 0:
             return df
@@ -105,9 +105,9 @@ class DashboardValidacionCEAPSI:
         st.info(f"📊 {nombre_dataset}: Optimizando {len(df)} registros → {max_puntos} puntos para visualización")
         
         # ESTRATEGIA 1: Sampling inteligente preservando tendencias
-        # Mantener los primeros y últimos puntos siempre
-        inicio_puntos = min(200, len(df) // 4)
-        fin_puntos = min(200, len(df) // 4)
+        # Mantener los primeros y últimos puntos siempre (más generoso con datos)
+        inicio_puntos = min(1000, len(df) // 4)
+        fin_puntos = min(1000, len(df) // 4)
         medio_puntos = max_puntos - inicio_puntos - fin_puntos
         
         # Dividir el rango medio y hacer sampling uniforme
@@ -239,8 +239,8 @@ class DashboardValidacionCEAPSI:
             df_completo['mes'] = df_completo['FECHA'].dt.month
             df_completo['ano'] = df_completo['FECHA'].dt.year
             
-            # Filtrar solo días laborales
-            df_completo = df_completo[df_completo['FECHA'].dt.dayofweek < 5]
+            # NO FILTRAR días laborales - el call center puede operar todos los días
+            # Mantener TODOS los datos históricos para análisis completo
             
             # OPTIMIZACIÓN CRÍTICA: Para archivos muy grandes, dar aviso de optimizaciones
             if len(df_completo) > 50000:
@@ -248,7 +248,7 @@ class DashboardValidacionCEAPSI:
                 st.info("⚡ Las visualizaciones se optimizarán automáticamente para mejor rendimiento") 
                 with st.expander("📊 Estrategias de Optimización Aplicadas"):
                     st.markdown("""
-                    - **Gráficos Históricos**: Sampling inteligente a ~1000-3000 puntos
+                    - **Gráficos Históricos**: Sampling inteligente a ~10000 puntos
                     - **Análisis de Patrones**: Muestra representativa estratificada  
                     - **Heatmaps**: Limitado a períodos recientes más relevantes
                     - **Hover Details**: Información completa mantenida
@@ -417,10 +417,10 @@ class DashboardValidacionCEAPSI:
             fecha_limite_final = min(fecha_limite_pred, fecha_hoy)
             df_hist_filtrado = df_hist_valido[df_hist_valido['ds'] <= fecha_limite_final]
             
-            # OPTIMIZACIÓN CRÍTICA: Reducir datos históricos para archivos grandes
-            if len(df_hist_filtrado) > 1000:
-                st.info(f"⚡ Optimizando visualización: {len(df_hist_filtrado)} → 1000 puntos históricos")
-                df_hist_optimized = self._optimizar_datos_para_plot(df_hist_filtrado, max_puntos=1000, nombre_dataset="Histórico")
+            # OPTIMIZACIÓN CRÍTICA: Reducir datos históricos solo si es EXTREMADAMENTE grande
+            if len(df_hist_filtrado) > 50000:
+                st.info(f"⚡ Optimizando visualización: {len(df_hist_filtrado)} → 10000 puntos históricos")
+                df_hist_optimized = self._optimizar_datos_para_plot(df_hist_filtrado, max_puntos=10000, nombre_dataset="Histórico")
             else:
                 df_hist_optimized = df_hist_filtrado
             
@@ -1354,7 +1354,7 @@ class DashboardValidacionCEAPSI:
         if len(df_historico) > 5000:
             st.info(f"⚡ Optimizando análisis de patrones: {len(df_historico)} → muestreo inteligente")
             # Para patrones, hacer sampling más conservador manteniendo representatividad temporal
-            df_historico = self._optimizar_datos_para_plot(df_historico, max_puntos=3000, nombre_dataset="Patrones Temporales")
+            df_historico = self._optimizar_datos_para_plot(df_historico, max_puntos=15000, nombre_dataset="Patrones Temporales")
         
         try:
             # Preparar datos para heatmap simple

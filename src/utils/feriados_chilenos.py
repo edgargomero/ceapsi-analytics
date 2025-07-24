@@ -30,11 +30,17 @@ class GestorFeriadosChilenos:
         self.cargar_feriados()
     
     def cargar_feriados(self):
-        """Carga los feriados chilenos integrados en el código"""
+        """Carga los feriados chilenos desde archivo CSV o datos integrados"""
         try:
-            # Usar datos integrados por defecto
-            self.crear_feriados_default()
-            logger.info("Feriados chilenos cargados desde datos integrados en el código")
+            # Primero intentar cargar desde archivo CSV
+            csv_path = Path(r"C:\Users\edgar\OneDrive\Documentos\BBDDCEAPSI\claude\backups\feriadoschile.csv")
+            if csv_path.exists():
+                self.feriados_df = pd.read_csv(csv_path)
+                logger.info(f"Feriados chilenos cargados desde archivo CSV: {csv_path}")
+            else:
+                # Si no existe el archivo, usar datos integrados por defecto
+                self.crear_feriados_default()
+                logger.info("Feriados chilenos cargados desde datos integrados en el código")
             
             # Procesar y normalizar datos
             self.procesar_feriados()

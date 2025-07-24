@@ -20,14 +20,17 @@ def init_mcp_connection():
             return False
         
         # Configurar conexión usando las variables del .mcp.json
-        # Estas deberían estar disponibles como variables de entorno
+        # Frontend DEBE usar ANON KEY, no service role key
         supabase_url = os.getenv('SUPABASE_URL')
-        supabase_key = os.getenv('SUPABASE_KEY')
+        supabase_key = os.getenv('SUPABASE_ANON_KEY')
         
         # También revisar secrets de Streamlit
         if not supabase_url and hasattr(st, 'secrets'):
             supabase_url = st.secrets.get('SUPABASE_URL')
-            supabase_key = st.secrets.get('SUPABASE_KEY')
+            supabase_key = st.secrets.get('SUPABASE_ANON_KEY')
+            # Solo usar SUPABASE_KEY como fallback si no hay ANON_KEY
+            if not supabase_key:
+                supabase_key = st.secrets.get('SUPABASE_KEY')
         
         # Si aún no hay credenciales, usar las del .mcp.json (proyecto específico)
         if not supabase_url:

@@ -18,6 +18,14 @@ import io
 import subprocess
 import logging
 import plotly.graph_objects as go
+import time
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    logger = logging.getLogger('CEAPSI_APP')
+    logger.warning("psutil no disponible - monitor de recursos deshabilitado")
 
 # Fix para imports locales
 current_dir = Path(__file__).parent.absolute()
@@ -304,6 +312,9 @@ class PipelineProcessor:
         
     def ejecutar_auditoria(self):
         """PASO 1: Auditoría de datos"""
+        logger.info("="*60)
+        logger.info("🔍 INICIANDO ETAPA 1/4: AUDITORÍA DE DATOS")
+        logger.info("="*60)
         st.info("🔍 Ejecutando auditoría de datos...")
         
         try:
@@ -358,14 +369,19 @@ class PipelineProcessor:
             with col4:
                 st.metric("Llamadas Atendidas", f"{auditoria['llamadas_atendidas']:,}")
             
+            logger.info(f"✅ Auditoría completada: {auditoria['total_registros']:,} registros procesados")
             return True
             
         except Exception as e:
+            logger.error(f"❌ Error en auditoría: {e}")
             st.error(f"Error en auditoría: {e}")
             return False
     
     def ejecutar_segmentacion(self):
         """PASO 2: Segmentación de llamadas"""
+        logger.info("="*60)
+        logger.info("🔀 INICIANDO ETAPA 2/4: SEGMENTACIÓN DE LLAMADAS") 
+        logger.info("="*60)
         st.info("🔀 Ejecutando segmentación de llamadas...")
         
         # CRÍTICO: Limpiar archivos cache de ejecuciones anteriores para evitar data leakage
@@ -487,6 +503,9 @@ class PipelineProcessor:
     
     def ejecutar_entrenamiento_modelos(self):
         """PASO 3: Entrenamiento de modelos predictivos"""
+        logger.info("="*60)
+        logger.info("🤖 INICIANDO ETAPA 3/4: ENTRENAMIENTO DE MODELOS ML")
+        logger.info("="*60)
         st.info("📊 Entrenando modelos estadísticos y de machine learning...")
         
         # Ir directo al entrenamiento básico por simplicidad y confiabilidad
@@ -579,6 +598,9 @@ class PipelineProcessor:
     
     def generar_predicciones(self):
         """PASO 4: Generar predicciones futuras"""
+        logger.info("="*60)
+        logger.info("🔮 INICIANDO ETAPA 4/4: GENERACIÓN DE PREDICCIONES")
+        logger.info("="*60)
         st.info("🔮 Generando predicciones futuras con modelos entrenados...")
         
         try:
@@ -671,6 +693,13 @@ class PipelineProcessor:
     def ejecutar_pipeline_completo(self):
         """Ejecutar todo el pipeline de forma simplificada"""
         try:
+            logger.info("\n" + "#"*80)
+            logger.info("#" + " "*25 + "INICIANDO PIPELINE COMPLETO" + " "*26 + "#")
+            logger.info("#"*80)
+            logger.info(f"Archivo: {self.archivo_datos}")
+            logger.info(f"Hora inicio: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            logger.info("#"*80 + "\n")
+            
             # Progress bar simple
             progress_bar = st.progress(0, text="Iniciando pipeline...")
             
@@ -700,6 +729,11 @@ class PipelineProcessor:
             
             # Completado
             progress_bar.progress(1.0, text="✅ Pipeline completado!")
+            
+            logger.info("\n" + "#"*80)
+            logger.info("#" + " "*20 + "🎉 PIPELINE COMPLETADO EXITOSAMENTE 🎉" + " "*21 + "#")
+            logger.info(f"Hora fin: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            logger.info("#"*80 + "\n")
             
             # Actualizar estados
             st.session_state.pipeline_completado = True
@@ -901,8 +935,44 @@ def procesar_archivo_subido(archivo_subido):
         
         # Ejecutar pipeline automáticamente
         st.info("🔄 Ejecutando pipeline automáticamente...")
-        processor = PipelineProcessor(temp_path)
-        processor.ejecutar_pipeline_completo()
+        
+        # Guardar tiempo de inicio para tracking
+        st.session_state.pipeline_start_time = datetime.now()
+        st.session_state.total_registros = len(df_mapped)
+        
+        # Crear placeholder para actualizaciones
+        pipeline_container = st.container()
+        
+        with pipeline_container:
+            st.markdown("### 🎯 Pipeline de Análisis en Progreso")
+            st.warning("⏱️ Tiempo estimado: 3-5 minutos para datasets grandes")
+            
+            # Mostrar info del dataset
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("📄 Registros totales", f"{len(df_mapped):,}")
+            with col2:
+                if 'SENTIDO' in df_mapped.columns:
+                    entrantes = len(df_mapped[df_mapped['SENTIDO'] == 'in'])
+                    st.metric("📥 Llamadas entrantes", f"{entrantes:,}")
+            with col3:
+                if 'SENTIDO' in df_mapped.columns:
+                    salientes = len(df_mapped[df_mapped['SENTIDO'] == 'out'])
+                    st.metric("📤 Llamadas salientes", f"{salientes:,}")
+            
+            st.info("📌 La página se actualizará automáticamente cuando el pipeline termine")
+            
+            # Ejecutar pipeline
+            processor = PipelineProcessor(temp_path)
+            success = processor.ejecutar_pipeline_completo()
+            
+            if success:
+                st.balloons()
+                st.success("🎉 ¡Pipeline completado exitosamente! Redirigiendo al Dashboard...")
+                time.sleep(2)
+                st.rerun()
+            else:
+                st.error("❌ Error en el pipeline. Por favor revisa los logs.")
         
     except Exception as e:
         logger.error(f"Error procesando archivo: {e}")
@@ -1203,12 +1273,50 @@ def mostrar_card_metrica_mejorada(titulo, valor, descripcion, icono, color="#4CA
 
 def mostrar_progreso_pipeline_simple():
     """Mostrar progreso simplificado del pipeline"""
-    if st.session_state.get('pipeline_completado', False):
-        st.success("✅ Pipeline completado - Ver resultados en Dashboard")
-    elif st.session_state.get('datos_cargados', False):
-        progress = st.progress(0.5, text="⚙️ Pipeline ejecutándose...")
-    else:
-        st.info("📁 Carga archivo")
+    # Crear contenedor para estado en tiempo real
+    estado_container = st.container()
+    
+    with estado_container:
+        if st.session_state.get('pipeline_completado', False):
+            st.success("✅ Pipeline completado - Ver resultados en Dashboard")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("📅 Registros", f"{st.session_state.get('total_registros', 0):,}")
+            with col2:
+                st.metric("🤖 Modelos", "4 entrenados")
+            with col3:
+                st.metric("🔮 Predicciones", "28 días")
+        elif st.session_state.get('datos_cargados', False):
+            # Mostrar barra de progreso animada
+            progress_placeholder = st.empty()
+            with progress_placeholder.container():
+                st.warning("⏳ Pipeline en ejecución - Tiempo estimado: 3-5 minutos")
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                # Simular etapas del pipeline
+                etapas = [
+                    (0.2, "🔍 Auditando datos..."),
+                    (0.4, "🔀 Segmentando llamadas..."),
+                    (0.6, "🤖 Entrenando modelos..."),
+                    (0.8, "🔮 Generando predicciones..."),
+                    (1.0, "✅ Finalizando...")
+                ]
+                
+                # Mostrar etapa actual basada en tiempo transcurrido
+                if 'pipeline_start_time' not in st.session_state:
+                    st.session_state.pipeline_start_time = datetime.now()
+                
+                tiempo_transcurrido = (datetime.now() - st.session_state.pipeline_start_time).seconds
+                etapa_actual = min(int(tiempo_transcurrido / 60), len(etapas) - 1)
+                
+                progress_bar.progress(etapas[etapa_actual][0])
+                status_text.text(etapas[etapa_actual][1])
+                
+                # Info adicional
+                st.info("💡 El entrenamiento de modelos ML puede tomar varios minutos con datasets grandes")
+        else:
+            st.info("📁 Carga archivo")
 
 def mostrar_progreso_pipeline():
     """Muestra el progreso simplificado del pipeline"""
@@ -1548,18 +1656,69 @@ def main():
             </div>
             """, unsafe_allow_html=True)
             
-            # Mostrar estado del pipeline
-            mostrar_progreso_pipeline()
+            # Crear un contenedor fijo en la parte superior para el estado
+            estado_principal = st.container()
             
-            # Estado minimalista
-            if st.session_state.get('datos_cargados', False):
-                col1, col2, col3 = st.columns([1, 2, 1])
-                with col2:
-                    st.info("📊 Datos listos - Pipeline ejecutándose automáticamente")
-            else:
-                col1, col2, col3 = st.columns([1, 2, 1])
-                with col2:
-                    st.info("📁 Panel lateral →")
+            with estado_principal:
+                # Estado del sistema en tiempo real
+                if st.session_state.get('pipeline_completado', False):
+                    st.success("🎉 **ANÁLISIS COMPLETADO** - Navega al Dashboard para ver los resultados detallados")
+                    if st.button("📊 Ir al Dashboard", type="primary", use_container_width=True):
+                        st.session_state.navegacion_objetivo = "📊 Dashboard"
+                        st.rerun()
+                elif st.session_state.get('datos_cargados', False):
+                    # Pipeline en ejecución
+                    st.warning("⏳ **PIPELINE EN EJECUCIÓN**")
+                    
+                    # Crear columnas para tiempo y recursos
+                    col_tiempo, col_recursos = st.columns([2, 1])
+                    
+                    with col_tiempo:
+                        # Calcular tiempo transcurrido
+                        if 'pipeline_start_time' in st.session_state:
+                            tiempo_transcurrido = (datetime.now() - st.session_state.pipeline_start_time).seconds
+                            minutos = tiempo_transcurrido // 60
+                            segundos = tiempo_transcurrido % 60
+                            st.info(f"⏱️ Tiempo transcurrido: {minutos}:{segundos:02d}")
+                    
+                    with col_recursos:
+                        # Monitor de recursos si está disponible
+                        if PSUTIL_AVAILABLE:
+                            try:
+                                cpu_percent = psutil.cpu_percent(interval=0.1)
+                                memory = psutil.virtual_memory()
+                                st.metric("💻 CPU", f"{cpu_percent}%")
+                                st.metric("🧠 RAM", f"{memory.percent:.1f}%")
+                            except:
+                                st.info("📊 Procesando...")
+                        else:
+                            st.info("📊 Procesando...")
+                    
+                    # Mostrar pasos del pipeline
+                    st.markdown("#### 🔄 Procesando:")
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        pasos = [
+                            "1️⃣ Auditoría de datos",
+                            "2️⃣ Segmentación de llamadas", 
+                            "3️⃣ Entrenamiento de modelos ML",
+                            "4️⃣ Generación de predicciones"
+                        ]
+                        for paso in pasos:
+                            st.write(paso)
+                    with col2:
+                        st.metric("Dataset", f"{st.session_state.get('total_registros', 0):,} registros")
+                    
+                    st.info("💡 **Nota**: El proceso puede tomar 3-5 minutos para datasets grandes. La página se actualizará automáticamente.")
+                else:
+                    st.info("📁 **INICIO** - Carga un archivo desde el panel lateral →")
+            
+            # Separador visual
+            st.markdown("---")
+            
+            # Mostrar progreso detallado del pipeline si está en ejecución
+            if st.session_state.get('datos_cargados', False) and not st.session_state.get('pipeline_completado', False):
+                mostrar_progreso_pipeline()
     elif pagina == "🔧 Preparación de Datos":
         if PREP_DATOS_AVAILABLE:
             mostrar_preparacion_datos()

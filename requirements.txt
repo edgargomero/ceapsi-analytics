@@ -11,6 +11,7 @@ requests>=2.31.0
 scikit-optimize>=0.9.0
 optuna>=3.0.0
 psutil>=5.9.0
+scipy>=1.11.0
 # Autenticación Supabase (OBLIGATORIO para seguridad)
 supabase==2.8.0
 python-dotenv==1.0.1

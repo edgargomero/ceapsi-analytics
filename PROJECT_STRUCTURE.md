@@ -1,286 +1,251 @@
-# 📁 CEAPSI - Estructura del Proyecto v2.0 Optimizada
+# 📁 CEAPSI - Estructura del Proyecto v2.0
 
-## 🎯 **Arquitectura Optimizada con Seguridad Avanzada**
+## 🎯 **Arquitectura Simplificada con Analytics Avanzado**
 
 ```
 CEAPSI/
-├── 📄 app.py                               # ✅ Aplicación optimizada v2.0 (75% más rápida)
+├── 📄 app.py                               # ✅ Aplicación principal (2007 líneas)
 ├── 📄 app_legacy.py                        # 📦 Backup versión anterior
+├── 📄 app_too_optimized.py                 # 📦 Versión experimental
 ├── 📄 requirements.txt                     # ✅ Dependencies actualizadas
-├── 📄 .env.example                         # ✅ Template configuración segura
-├── 📄 README.md                            # ✅ Documentación actualizada
-├── 📄 DEPLOYMENT_GUIDE.md                  # ✅ Guía deployment automático
+├── 📄 .env.example                         # ✅ Template configuración
+├── 📄 README.md                            # ✅ Documentación principal
+├── 📄 CLAUDE.md                            # ✅ Guía para Claude Code
 ├── 📄 PROJECT_STRUCTURE.md                 # 📋 Este archivo
 │
-├── 📁 src/                                 # Código fuente con lazy loading
-│   ├── 📁 ui/                             # Interfaz optimizada
-│   │   ├── optimized_frontend.py          # ✅ Componentes UI reutilizables
-│   │   ├── dashboard_comparacion.py       # Dashboard responsive
-│   │   ├── historial_sesiones.py         # Historial con paginación
-│   │   └── ux_mejoras.py                  # Mejoras UX/mobile
-│   ├── 📁 auth/                           # Autenticación segura
-│   │   ├── supabase_auth.py              # ✅ Auth con anon/service key separation
-│   │   └── security_check.py             # Verificaciones adicionales
+├── 📁 src/                                 # Código fuente modular
+│   ├── 📁 ui/                             # Interfaz de usuario
+│   │   ├── dashboard_comparacion_v2.py    # ✅ Dashboard v2 con 5 tabs
+│   │   ├── dashboard_analytics.py         # ✅ Módulo de analytics
+│   │   ├── components/                    # ✅ Componentes modulares
+│   │   │   ├── data_loader.py            # Carga de datos
+│   │   │   ├── data_validator.py         # Validación y filtrado
+│   │   │   └── chart_visualizer.py       # Visualizaciones
+│   │   ├── optimized_frontend.py          # Componentes UI optimizados
+│   │   ├── historial_sesiones.py         # Historial de sesiones
+│   │   └── ux_mejoras.py                  # Mejoras UX/UI
+│   ├── 📁 auth/                           # Autenticación
+│   │   ├── supabase_auth.py              # ✅ Auth con Supabase
+│   │   └── security_check.py             # Verificaciones de seguridad
 │   ├── 📁 core/                           # Funcionalidades núcleo
-│   │   ├── mcp_session_manager.py        # Gestor sesiones optimizado
-│   │   ├── mcp_init.py                   # Inicializador MCP
-│   │   └── preparacion_datos.py          # Preparación con validación
-│   ├── 📁 models/                         # ML con lazy loading
-│   │   ├── sistema_multi_modelo.py       # Sistema multi-modelo
+│   │   ├── field_detector.py             # ✅ Auto-detección de campos
+│   │   └── preparacion_datos.py          # Preparación de datos
+│   ├── 📁 models/                         # Machine Learning
+│   │   ├── sistema_multi_modelo.py       # Ensemble de 4 modelos
 │   │   └── optimizacion_hiperparametros.py # Optimización HP
-│   ├── 📁 api/                            # APIs externas rate-limited
-│   │   └── modulo_estado_reservo.py      # API Reservo (5 req/h)
+│   ├── 📁 api/                            # APIs externas
+│   │   └── modulo_estado_reservo.py      # API Reservo
 │   ├── 📁 services/                       # Servicios de procesamiento
-│   │   ├── auditoria_datos_llamadas.py   # Auditoría avanzada
-│   │   ├── segmentacion_llamadas.py      # Segmentación optimizada
-│   │   └── automatizacion_completa.py    # Pipeline automatizado
-│   └── 📁 utils/                          # Utilidades compartidas
+│   │   ├── auditoria_datos_llamadas.py   # Auditoría de datos
+│   │   ├── segmentacion_llamadas.py      # Segmentación
+│   │   └── automatizacion_completa.py    # Pipeline completo
+│   └── 📁 utils/                          # Utilidades
 │       └── feriados_chilenos.py          # Gestión feriados chilenos
 │
-├── 📁 backend/                            # Backend FastAPI (Seguridad)
+├── 📁 backend/                            # Backend FastAPI (Opcional)
 │   └── 📁 app/                           # Aplicación FastAPI
-│       ├── 📄 main.py                    # ✅ App principal con middleware
-│       ├── 📁 core/                      # Núcleo de seguridad
-│       │   ├── rate_limiter.py          # 🛡️ Rate limiting (60 req/min)
-│       │   ├── file_validation.py       # 🛡️ Anti-malware + validation
-│       │   ├── error_handler.py         # 🛡️ Secure error handling
-│       │   ├── supabase_auth.py         # 🔐 Backend authentication
-│       │   └── config.py                # Configuración segura
-│       ├── 📁 api/                       # Endpoints REST protegidos
+│       ├── 📄 main.py                    # App principal
+│       ├── 📁 core/                      # Núcleo del backend
+│       │   ├── rate_limiter.py          # Rate limiting
+│       │   ├── file_validation.py       # Validación de archivos
+│       │   ├── error_handler.py         # Manejo de errores
+│       │   ├── supabase_auth.py         # Auth backend
+│       │   └── config.py                # Configuración
+│       ├── 📁 api/                       # Endpoints REST
 │       │   └── 📁 routers/               # Rutas modulares
-│       │       ├── analysis.py          # Endpoints análisis
-│       │       ├── data.py              # Upload con validación
-│       │       ├── sessions.py          # Gestión sesiones
-│       │       ├── models.py            # Modelos ML
-│       │       └── reservo.py           # Integración Reservo
-│       ├── 📁 models/                    # Esquemas de datos
-│       │   └── schemas.py               # Pydantic models
-│       ├── 📁 services/                  # Servicios backend
-│       ├── 📁 utils/                     # Utilidades backend
 │       └── 📄 requirements.txt          # Dependencies backend
-│
-├── 📁 frontend/                           # Frontend separado (opcional)
-│   ├── 📄 app.py                         # App frontend standalone
-│   ├── 📄 api_client.py                  # Cliente API optimizado
-│   └── 📄 backend_adapter.py             # Adaptador backend
 │
 ├── 📁 database/                           # Base de datos
 │   └── 📁 migrations/                     # Migraciones SQL
-│       ├── 001_create_analysis_sessions.sql # ✅ Sesiones con security
-│       └── 002_audit_system.sql          # ✅ Sistema de auditoría
+│       ├── 001_create_analysis_sessions.sql
+│       └── 002_audit_system.sql
 │
-├── 📁 docs/                               # Documentación actualizada
-│   ├── 📄 SECURITY_SETUP.md              # ✅ Configuración seguridad
-│   ├── 📄 SUPABASE_SETUP.md              # Configuración Supabase
-│   ├── 📄 STREAMLIT_DEPLOYMENT.md        # Deployment Streamlit
-│   ├── 📄 CLAUDE.md                      # Instrucciones para Claude
-│   └── 📁 architecture/                   # Arquitectura del sistema
-│       └── ARCHITECTURE.md               # Documentación técnica
+├── 📁 docs/                               # Documentación
+│   ├── 📄 README.md                      # Docs principales
+│   ├── 📄 CLAUDE.md                      # Guía técnica
+│   └── 📁 architecture/                   # Arquitectura
+│       └── ARCHITECTURE.md
 │
 ├── 📁 assets/                             # Recursos estáticos
-│   ├── 📁 data/                          # Datos de ejemplo
-│   │   ├── ejemplo_datos_llamadas.csv    # Dataset demo
-│   │   ├── datos_prophet_entrante.csv    # Datos históricos
-│   │   ├── datos_prophet_saliente.csv    # Datos históricos
-│   │   └── feriadoschile.csv             # Feriados Chile
-│   └── 📁 models/                        # Modelos pre-entrenados
+│   └── 📁 data/                          # Datos de ejemplo
+│       ├── ejemplo_datos_llamadas.csv
+│       └── feriadoschile.csv
 │
-├── 📁 config/                             # Configuración del sistema
-│   └── streamlit_config.toml             # Config Streamlit optimizada
+├── 📁 config/                             # Configuración
+│   └── streamlit_config.toml             # Config Streamlit
 │
 ├── 📁 scripts/                            # Scripts de utilidad
-│   └── 📁 deployment/                     # Scripts deployment
-│       └── deploy_backend.py             # Deploy backend FastAPI
+│   └── 📁 development/                    # Scripts desarrollo
+│       └── run.py                        # Launcher
 │
-├── 📁 tests/                              # Testing suite
-│   ├── 📁 unit/                          # Tests unitarios
-│   ├── 📁 integration/                   # Tests integración
-│   └── 📁 fixtures/                      # Datos de prueba
-│
-├── 📁 logs/                               # Logs del sistema
-│   └── 📁 archive/                       # Logs archivados
-│
-└── 📁 legacy/                             # Archivos legacy
-    └── config.yaml                       # Configuración antigua
+└── 📁 logs/                               # Logs del sistema
+    └── ceapsi_app.log                    # Log principal
 ```
 
-## 🚀 **Mejoras v2.0 Implementadas**
+## 🚀 **Características v2.0**
 
-### **⚡ Performance Optimizations**
+### **📊 Dashboard v2 - Analytics Avanzado**
 
 ```yaml
-Frontend Optimizado:
-  ✅ app.py → 75% más rápido con lazy loading
-  ✅ src/ui/optimized_frontend.py → Componentes reutilizables
-  ✅ Session state limpio y eficiente
-  ✅ Gráficos Plotly responsivos con mobile support
+5 Tabs de Análisis:
+  ✅ Predicciones vs Real - Navegación mejorada
+  ✅ Análisis de Residuales - Temporal y distribución
+  ✅ Métricas de Performance - Comparación de modelos
+  ✅ Mapas de Calor - 3 vistas temporales
+  ✅ Recomendaciones - En desarrollo
 
-Lazy Loading System:
-  ✅ Módulos ML se cargan solo cuando se usan
-  ✅ Dashboard components bajo demanda
-  ✅ API integrations on-demand loading
-  ✅ Memory usage reducido en 50%
+Nuevas Visualizaciones:
+  ✅ Heatmap Semanal (20 semanas)
+  ✅ Heatmap Horario (días vs horas)
+  ✅ Calendario Mensual (90 días)
+  ✅ Análisis de Estabilidad
+  ✅ Comparación entre Períodos
 ```
 
-### **🛡️ Security Hardening**
+### **⚡ Optimizaciones de Performance**
 
 ```yaml
-Rate Limiting:
-  ✅ backend/app/core/rate_limiter.py
-  ✅ 60 requests/min por IP, 300/hour
-  ✅ Burst protection (10 req/10s)
-  ✅ Auto-blocking tras 3 violaciones
+Pipeline Optimizado:
+  ✅ ~5 segundos para 341k registros
+  ✅ 4 etapas con logging detallado
+  ✅ Monitor de recursos (CPU/RAM)
+  ✅ Auto-detección de campos
 
-File Validation:
-  ✅ backend/app/core/file_validation.py
-  ✅ Magic number validation
-  ✅ Anti-malware scanning
-  ✅ Secure filename checking
-  ✅ Size limits (50MB max)
-
-Error Handling:
-  ✅ backend/app/core/error_handler.py
-  ✅ Sanitización de credenciales
-  ✅ Stack traces ocultos en production
-  ✅ Error IDs únicos para tracking
+Visualización:
+  ✅ Sampling inteligente (10k puntos)
+  ✅ Cache con TTL 5 minutos
+  ✅ Lazy loading de componentes
+  ✅ Gráficos Plotly responsivos
 ```
 
-### **🔐 Authentication & Authorization**
+### **🤖 Machine Learning**
 
 ```yaml
-Supabase Integration:
-  ✅ src/auth/supabase_auth.py → Frontend (anon key)
-  ✅ backend/app/core/supabase_auth.py → Backend (service key)
-  ✅ Row Level Security (RLS) en database
-  ✅ Role-based access control
+Modelos:
+  ✅ Prophet - Series temporales
+  ✅ ARIMA - Modelo estadístico
+  ✅ Random Forest - Ensemble
+  ✅ Gradient Boosting - Boosting
 
-Security Keys:
-  ⚠️ SUPABASE_ANON_KEY → Frontend usage
-  ⚠️ SUPABASE_SERVICE_ROLE_KEY → Backend only
-  ✅ Separation implemented and validated
+Métricas:
+  ✅ MAE, RMSE, MAPE, R²
+  ✅ Interpretación automática
+  ✅ Ranking de modelos
+  ✅ Análisis de residuales
 ```
 
-## 📊 **Flujo de Datos Optimizado**
+### **🔐 Seguridad y Autenticación**
+
+```yaml
+Autenticación:
+  ✅ Supabase JWT obligatorio
+  ✅ ANON_KEY para frontend
+  ✅ SERVICE_ROLE_KEY solo backend
+  ✅ Login requerido
+
+Validación:
+  ✅ Detección de encodings
+  ✅ Filtrado de fechas futuras
+  ✅ Mapeo inteligente de campos
+  ✅ Asignación automática usuarios
+```
+
+## 📊 **Flujo de Datos**
 
 ```mermaid
 graph TD
-    A[Usuario] --> B[app.py Optimizado]
-    B --> C{Lazy Loading}
-    C -->|Needed| D[Load Module]
-    C -->|Cached| E[Use Cached]
+    A[Usuario] --> B[Login Supabase]
+    B --> C[app.py]
+    C --> D[Carga CSV/Excel]
+    D --> E[Auto-detección Campos]
+    E --> F[Pipeline 4 Etapas]
     
-    D --> F[src/ui/optimized_frontend.py]
-    E --> F
-    F --> G[Responsive Charts]
+    F --> G[1. Auditoría 15s]
+    G --> H[2. Segmentación 20s]
+    H --> I[3. Entrenamiento 45s]
+    I --> J[4. Predicciones 25s]
     
-    B --> H[src/auth/supabase_auth.py]
-    H --> I[Supabase Auth]
-    I --> J[User Session]
+    J --> K[session_state.resultados_pipeline]
+    K --> L[Dashboard v2]
     
-    B --> K[File Upload]
-    K --> L[backend/app/core/file_validation.py]
-    L --> M{Validation}
-    M -->|Pass| N[Process Data]
-    M -->|Fail| O[Reject + Log]
-    
-    N --> P[src/models/sistema_multi_modelo.py]
-    P --> Q[ML Pipeline]
-    Q --> R[Results + Dashboard]
+    L --> M[5 Tabs Analytics]
+    M --> N[Visualizaciones Interactivas]
 ```
 
-## 🔧 **Configuración de Deployment**
+## 🔧 **Configuración**
 
-### **Streamlit Cloud (Automático)**
+### **Variables de Entorno (.env)**
+
+```bash
+# Supabase (Requerido)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# APIs Externas (Opcional)
+API_KEY=Token your-reservo-api-key
+API_URL=https://reservo.cl/APIpublica/v2
+
+# Desarrollo
+ENVIRONMENT=development
+DEBUG=false
+```
+
+### **Ejecución**
+
+```bash
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Ejecutar aplicación
+streamlit run app.py
+
+# Desarrollo con hot-reload
+python scripts/development/run.py
+```
+
+## 📈 **Métricas de Performance**
 
 ```yaml
-Repository: github.com/edgargomero/analisis_resultados
-Branch: main (auto-deploy activo)
-Path: pcf_scripts/app.py
-Secrets: Configuradas en Streamlit Cloud
+Velocidad:
+  Pipeline: ~5 segundos (341k registros)
+  Dashboard: <1 segundo navegación
+  Login: <2 segundos
 
-Auto-deployment:
-  ✅ git push → auto redeploy
-  ✅ Health checks automáticos  
-  ✅ Rollback en caso de error
-  ✅ Logs en tiempo real
+Recursos:
+  RAM: ~140MB en ejecución
+  CPU: Picos durante pipeline
+  Cache: 5 min TTL
+
+Escalabilidad:
+  Óptimo: <500k registros
+  Máximo: 1M registros
+  Sampling: Automático >10k puntos
 ```
 
-### **Variables de Entorno**
+## 🚨 **Cambios Importantes v2.0**
 
-```toml
-# Configuración actual en Streamlit Cloud
-SUPABASE_URL = "https://lvouimzndppleeolbbhj.supabase.co"
-SUPABASE_KEY = "service_role_key"  # ⚠️ Cambiar a anon_key
-SUPABASE_PROJECT_REF = "lvouimzndppleeolbbhj"
-SUPABASE_ACCESS_TOKEN = "sbp_5491fdccf9cf571ee749337d82c67236ff2768ce"
+### **✅ Implementado**
+- Dashboard v2 con analytics avanzado
+- Análisis de residuales completo
+- Métricas de performance detalladas
+- 3 tipos de mapas de calor
+- Análisis de estabilidad temporal
+- Comparación entre períodos
+- Auto-detección de campos CSV/Excel
+- Monitor de recursos en tiempo real
 
-ENVIRONMENT = "production"
-DEBUG = "false"
+### **❌ Eliminado**
+- Dashboard v1 (dashboard_comparacion.py)
+- Sistema MCP (mcp_init.py, mcp_session_manager.py)
+- Referencias a variables indefinidas
+- Toggle v1/v2 en sidebar
 
-API_KEY = "Token 53db414936e40ec5091e2e6074bdaced68709821"
-API_URL = "https://reservo.cl/APIpublica/v2"
-```
-
-## 📈 **Métricas de Mejora**
-
-### **Performance Benchmarks**
-
-```yaml
-Tiempo de Carga:
-  v1.5: 12 segundos → v2.0: 3 segundos (75% mejora)
-
-Memory Usage:
-  v1.5: 280MB → v2.0: 140MB (50% reducción)
-
-Mobile Experience:
-  v1.5: No responsive → v2.0: Totalmente responsive
-
-Navigation Speed:
-  v1.5: 4 segundos → v2.0: 1 segundo (4x más rápida)
-```
-
-### **Security Metrics**
-
-```yaml
-Rate Limiting:
-  ✅ 60 requests/minuto protección IP
-  ✅ 5 requests/hora para Reservo API
-  ✅ Auto-blocking implementado
-
-File Security:
-  ✅ 100% archivos validados antes de procesamiento
-  ✅ Magic numbers + content scanning
-  ✅ Zero false positives en testing
-
-Error Security:
-  ✅ 0% credential exposure en logs
-  ✅ Stack traces sanitizados
-  ✅ Production-ready error handling
-```
-
-## 🚨 **Consideraciones de Seguridad**
-
-### **⚠️ Acción Requerida: Separación de Keys**
-
-```toml
-# ACTUAL (Riesgo de seguridad)
-SUPABASE_KEY = "service_role_key"  # Muy permisiva para frontend
-
-# RECOMENDADO (Seguridad óptima)
-SUPABASE_ANON_KEY = "anon_key"           # Para frontend
-SUPABASE_SERVICE_ROLE_KEY = "service_key" # Solo para backend
-```
-
-### **✅ Sistemas de Protección Activos**
-
-- 🛡️ **Rate Limiting**: Activo con bloqueo automático
-- 🔍 **File Validation**: Scanning completo de uploads
-- 🔒 **Error Sanitization**: Protección de datos sensibles
-- 📊 **Audit Logging**: Tracking de todas las acciones
-- 🚫 **Access Control**: Roles y permisos por usuario
+### **🚧 En Desarrollo**
+- Tab de recomendaciones automáticas
+- Análisis cruzado con datos de usuarios
+- Exportación avanzada de reportes
 
 ---
 
-**🚀 Estructura v2.0 optimizada para máxima performance y seguridad avanzada**
-
-**✅ Sistema desplegado automáticamente en Streamlit Cloud con todas las mejoras activas**
+**CEAPSI v2.0** - Sistema de Análisis Inteligente para Call Center 🚀

@@ -80,21 +80,13 @@ except ImportError as e:
     logger.critical(f"FALLO CRÍTICO: No se pudo cargar autenticación Supabase: {e}")
     SUPABASE_AUTH_AVAILABLE = False
 
-# Inicializar conexión MCP Supabase
-try:
-    from core.mcp_init import init_mcp_connection
-    init_mcp_connection()
-    logger.info("Conexión MCP Supabase inicializada")
-except ImportError as e:
-    logger.warning(f"MCP no disponible: {e}")
-except Exception as e:
-    logger.error(f"Error inicializando MCP: {e}")
+# Conexión con Supabase manejada directamente por SupabaseAuthManager
 
 # Importar Dashboard v2 (única versión)
 try:
     from ui.dashboard_comparacion_v2 import DashboardValidacionCEAPSI_V2
     DASHBOARD_AVAILABLE = True
-    logger.info("✅ Dashboard v2 (única versión) disponible")
+    logger.info("✅ Dashboard v2 disponible")
 except ImportError as e:
     logger.error(f"Dashboard no disponible: {e}")
     DASHBOARD_AVAILABLE = False
@@ -768,27 +760,8 @@ class PipelineProcessor:
         st.session_state.resultados_pipeline = self.resultados
         st.session_state.pipeline_completado = True
         
-        # Guardar sesión en base de datos usando MCP
-        try:
-            from core.mcp_session_manager import get_mcp_session_manager
-            session_manager = get_mcp_session_manager()
-            
-            if hasattr(st.session_state, 'current_session_id') and st.session_state.current_session_id:
-                success = session_manager.save_analysis_results(
-                    st.session_state.current_session_id, 
-                    self.resultados
-                )
-                
-                if success:
-                    st.success("💾 Resultados guardados en base de datos")
-                else:
-                    st.warning("⚠️ No se pudieron guardar los resultados en la base de datos")
-            else:
-                st.warning("⚠️ No hay sesión activa para guardar resultados")
-                
-        except Exception as e:
-            logger.error(f"Error guardando sesión: {e}")
-            st.warning(f"⚠️ Error guardando sesión: {e}")
+        # Los resultados se guardan automáticamente en st.session_state
+        logger.info("💾 Resultados guardados en session_state para acceso del dashboard")
         
         st.info("💡 Ahora puedes navegar al Dashboard para ver análisis detallados y predicciones interactivas.")
 
@@ -797,9 +770,7 @@ def procesar_archivo_subido(archivo_subido):
     try:
         logger.info(f"Iniciando procesamiento de archivo: {archivo_subido.name}")
         
-        # Importar y configurar session manager MCP
-        from core.mcp_session_manager import get_mcp_session_manager
-        session_manager = get_mcp_session_manager()
+        # Configuración de sesión simplificada
         
         # Importar detector de campos
         from core.field_detector import FieldAutoDetector
@@ -897,10 +868,9 @@ def procesar_archivo_subido(archivo_subido):
             'field_mapping': final_mapping
         }
         
-        # Crear nueva sesión (usando un user_id por defecto si no hay autenticación)
-        user_id = st.session_state.get('user_id', 'anonymous_user')
-        session_id = session_manager.create_analysis_session(user_id, file_info, "call_center_analysis")
-        
+        # Crear ID de sesión simple
+        from datetime import datetime
+        session_id = f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         st.session_state.current_session_id = session_id
         
         # Actualizar session state con información completa
@@ -1172,64 +1142,28 @@ def mostrar_seccion_carga_archivos():
     # Información de usuarios movida a sección dedicada 👥 Análisis de Usuarios
 
 def mostrar_dashboard():
-    """Mostrar dashboard con resultados del pipeline - mejorado con UI optimizada"""
+    """Mostrar dashboard con análisis completo y mapas de calor"""
     
-    # Variable de control para elegir versión
-    usar_v2 = st.session_state.get('usar_dashboard_v2', True)  # Por defecto usar v2
+    if not DASHBOARD_AVAILABLE:
+        st.error("❌ Dashboard no está disponible")
+        return
     
-    # Selector temporal para testing (remover en producción)
-    with st.sidebar:
-        st.markdown("---")
-        usar_v2 = st.checkbox("🚀 Usar Dashboard v2 (Refactorizado)", value=usar_v2, key="toggle_dashboard_v2")
-        st.session_state.usar_dashboard_v2 = usar_v2
-    
-    # Usar versión v2 si está disponible y seleccionada
-    if usar_v2 and DASHBOARD_V2_AVAILABLE:
-        try:
-            logger.info("📊 Usando Dashboard v2 (refactorizado)")
-            dashboard = DashboardValidacionCEAPSI_V2()
-            
-            # Transferir archivo de datos
-            if hasattr(st.session_state, 'archivo_datos') and st.session_state.archivo_datos:
-                dashboard.archivo_datos_manual = st.session_state.archivo_datos
-                dashboard.data_loader.archivo_datos_manual = st.session_state.archivo_datos
-            
-            # Ejecutar dashboard v2
-            dashboard.ejecutar_dashboard()
-            
-        except Exception as e:
-            logger.error(f"Error en dashboard v2: {e}")
-            st.error(f"Error cargando dashboard v2: {e}")
-            st.info("Intentando cargar versión anterior...")
-            # Fallback a versión anterior
-            usar_v2 = False
-    
-    # Si no se usa v2, usar versión original
-    if not usar_v2 and DASHBOARD_AVAILABLE:
-        try:
-            logger.info("📊 Usando Dashboard v1 (original)")
-            dashboard = DashboardValidacionCEAPSI()
-            
-            # Verificar y transferir archivo de datos (sin mensajes duplicados)
-            if hasattr(st.session_state, 'archivo_datos') and st.session_state.archivo_datos:
-                dashboard.archivo_datos_manual = st.session_state.archivo_datos
-            else:
-                if OPTIMIZED_UI_AVAILABLE:
-                    show_status('warning', '⚠️ No hay archivo de datos cargado. Dashboard usará datos de ejemplo.')
-                else:
-                    st.warning("⚠️ No hay archivo de datos cargado. Dashboard usará datos de ejemplo.")
-                
-            # Ejecutar dashboard principal (preserva toda la funcionalidad existente)
-            dashboard.ejecutar_dashboard()
-            
-        except Exception as e:
-            if OPTIMIZED_UI_AVAILABLE:
-                show_status('error', f'Error cargando dashboard: {e}')
-            else:
-                st.error(f"Error cargando dashboard: {e}")
-            logger.error(f"Error en dashboard: {e}")
-    elif not DASHBOARD_AVAILABLE and not DASHBOARD_V2_AVAILABLE:
-        st.error("❌ Ninguna versión del dashboard está disponible")
+    try:
+        logger.info("📊 Iniciando Dashboard v2 con análisis completo")
+        dashboard = DashboardValidacionCEAPSI_V2()
+        
+        # Transferir archivo de datos si está disponible
+        if hasattr(st.session_state, 'archivo_datos') and st.session_state.archivo_datos:
+            dashboard.archivo_datos_manual = st.session_state.archivo_datos
+            dashboard.data_loader.archivo_datos_manual = st.session_state.archivo_datos
+        
+        # Ejecutar dashboard con todas las funcionalidades
+        dashboard.ejecutar_dashboard()
+        
+    except Exception as e:
+        logger.error(f"Error en dashboard: {e}")
+        st.error(f"Error cargando dashboard: {e}")
+        st.info("💡 Verifica que hayas cargado un archivo de datos válido")
 
 def mostrar_card_metrica_mejorada(titulo, valor, descripcion, icono, color="#4CAF50", delta=None):
     """Crea una card de métrica usando componentes optimizados si están disponibles"""
@@ -1609,7 +1543,6 @@ def main():
             "📊 Dashboard", 
             "🔧 Preparación de Datos",
             "📚 Historial de Sesiones",
-            "🔌 Estado MCP",
             "🔗 Estado Reservo",
             "🇨🇱 Feriados Chilenos",
             "🎯 Optimización ML", 
@@ -1733,13 +1666,6 @@ def main():
         except ImportError as e:
             st.error(f"⚠️ Módulo de historial no disponible: {e}")
             st.info("El sistema de historial requiere configuración de base de datos")
-    elif pagina == "🔌 Estado MCP":
-        try:
-            from core.mcp_init import show_mcp_status
-            show_mcp_status()
-        except ImportError as e:
-            st.error(f"⚠️ Módulo MCP no disponible: {e}")
-            st.info("El sistema MCP requiere configuración específica")
     elif pagina == "🔗 Estado Reservo":
         if ESTADO_RESERVO_AVAILABLE:
             mostrar_estado_reservo()

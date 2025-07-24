@@ -56,10 +56,11 @@ class DashboardValidacionCEAPSI_V2:
         tipo_llamada = self.mostrar_selector_tipo_llamada()
         
         # Tabs principales
-        tab1, tab2, tab3, tab4 = st.tabs([
+        tab1, tab2, tab3, tab4, tab5 = st.tabs([
             "📊 Predicciones vs Real", 
             "📈 Análisis de Residuales",
             "🎯 Métricas de Performance",
+            "🔥 Mapas de Calor",
             "📋 Recomendaciones"
         ])
         
@@ -73,6 +74,9 @@ class DashboardValidacionCEAPSI_V2:
             self.mostrar_tab_metricas(tipo_llamada)
         
         with tab4:
+            self.mostrar_tab_heatmaps(tipo_llamada)
+        
+        with tab5:
             self.mostrar_tab_recomendaciones(tipo_llamada)
     
     def mostrar_header_validacion(self):
@@ -236,6 +240,92 @@ class DashboardValidacionCEAPSI_V2:
         # Métricas estadísticas
         st.subheader("📈 Estadísticas del Dataset")
         self.analytics.mostrar_estadisticas_dataset(df_historico)
+        
+        # Análisis avanzado de estabilidad
+        st.markdown("---")
+        self.analytics.mostrar_analisis_estabilidad(df_historico)
+        
+        # Análisis comparativo de períodos
+        st.markdown("---")
+        self.analytics.mostrar_analisis_comparativo_periodos(df_historico)
+    
+    def mostrar_tab_heatmaps(self, tipo_llamada):
+        """Tab de mapas de calor temporales"""
+        logger.info(f"🔥 Mostrando mapas de calor para {tipo_llamada}")
+        
+        st.subheader("🔥 Análisis Temporal con Mapas de Calor")
+        st.markdown("""
+        Los mapas de calor revelan patrones temporales críticos en el call center:
+        - **Semanas vs Días**: Identifica tendencias estacionales y días problemáticos
+        - **Días vs Horas**: Optimiza la asignación de personal por horarios
+        - **Calendario Mensual**: Visualiza actividad diaria para planificación
+        """)
+        
+        # Cargar datos completos (necesitamos las fechas y horas)
+        with st.spinner("Cargando datos para análisis temporal..."):
+            df_completo = self.data_loader.cargar_datos_completos(
+                archivo_manual=self.archivo_datos_manual
+            )
+        
+        if df_completo is None:
+            st.error("❌ No se pudieron cargar los datos para mapas de calor")
+            return
+        
+        # Filtrar por tipo de llamada si es necesario
+        if 'SENTIDO' in df_completo.columns:
+            if tipo_llamada == 'ENTRANTE':
+                df_filtrado = df_completo[df_completo['SENTIDO'] == 'in'].copy()
+                logger.info(f"   Filtrado {len(df_filtrado)} llamadas entrantes")
+            else:
+                df_filtrado = df_completo[df_completo['SENTIDO'] == 'out'].copy()
+                logger.info(f"   Filtrado {len(df_filtrado)} llamadas salientes")
+        else:
+            df_filtrado = df_completo.copy()
+            logger.info(f"   Usando todas las llamadas: {len(df_filtrado)}")
+        
+        if len(df_filtrado) == 0:
+            st.warning(f"⚠️ No hay datos de llamadas {tipo_llamada.lower()}")
+            return
+        
+        # Mostrar mapas de calor usando el módulo de analytics
+        self.analytics.mostrar_heatmaps_temporales(df_filtrado)
+        
+        # Insights automáticos basados en los patrones
+        st.subheader("💡 Insights Automáticos")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Análisis de patrones diarios
+            if 'dia_semana' not in df_filtrado.columns:
+                df_filtrado['dia_semana'] = df_filtrado['FECHA'].dt.day_name()
+            
+            patrones_dia = df_filtrado.groupby('dia_semana').size()
+            dia_pico = patrones_dia.idxmax()
+            dia_valle = patrones_dia.idxmin()
+            
+            st.info(f"""
+            **📈 Patrón Semanal Detectado:**
+            - Día de mayor actividad: **{dia_pico}**
+            - Día de menor actividad: **{dia_valle}**
+            - Variación semanal: **{patrones_dia.std():.0f}** llamadas
+            """)
+        
+        with col2:
+            # Análisis de patrones horarios
+            if 'hora' not in df_filtrado.columns:
+                df_filtrado['hora'] = df_filtrado['FECHA'].dt.hour
+            
+            patrones_hora = df_filtrado.groupby('hora').size()
+            hora_pico = patrones_hora.idxmax()
+            hora_valle = patrones_hora.idxmin()
+            
+            st.info(f"""
+            **⏰ Patrón Horario Detectado:**
+            - Hora pico: **{hora_pico:02d}:00**
+            - Hora valle: **{hora_valle:02d}:00**
+            - Pico de llamadas: **{patrones_hora.max()}**
+            """)
     
     def mostrar_tab_recomendaciones(self, tipo_llamada):
         """Tab de recomendaciones"""

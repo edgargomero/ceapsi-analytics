@@ -38,6 +38,7 @@ class DashboardValidacionCEAPSI:
         self.archivo_datos_manual = None  # Para datos subidos manualmente
         self.archivo_usuarios = None  # Para datos de usuarios/cargos
         self.df_usuarios = None  # DataFrame de usuarios cargado
+        self.fecha_limite_cientifica = pd.Timestamp.now().normalize()  # Límite científico estricto
         
     def _obtener_ruta_resultados(self):
         """Obtiene la carpeta de resultados más reciente"""
@@ -51,6 +52,46 @@ class DashboardValidacionCEAPSI:
             return str(base_path)
         except:
             return base_path
+    
+    def _validar_integridad_cientifica_datos(self, df, nombre_dataset="Dataset"):
+        """Validación científica estricta de integridad temporal de datos"""
+        if df is None or len(df) == 0:
+            return df, []
+        
+        alertas = []
+        
+        # Verificar que existe columna de fechas
+        if 'ds' not in df.columns:
+            alertas.append(f"⚠️ {nombre_dataset}: Columna 'ds' (fechas) no encontrada")
+            return df, alertas
+        
+        # Convertir a datetime si no lo está
+        if not pd.api.types.is_datetime64_any_dtype(df['ds']):
+            df['ds'] = pd.to_datetime(df['ds'])
+        
+        # Contar fechas futuras
+        fechas_futuras = df[df['ds'] > self.fecha_limite_cientifica]
+        if len(fechas_futuras) > 0:
+            alertas.append(f"🚨 {nombre_dataset}: {len(fechas_futuras)} registros con fechas futuras detectados")
+            df_limpio = df[df['ds'] <= self.fecha_limite_cientifica].copy()
+            alertas.append(f"✅ {nombre_dataset}: Datos filtrados a {len(df_limpio)} registros históricos válidos")
+        else:
+            df_limpio = df.copy()
+            alertas.append(f"✅ {nombre_dataset}: Todos los {len(df)} registros son históricamente válidos")
+        
+        # Verificar ordenamiento temporal
+        if not df_limpio['ds'].is_monotonic_increasing:
+            alertas.append(f"🔧 {nombre_dataset}: Datos reordenados cronológicamente")
+            df_limpio = df_limpio.sort_values('ds').reset_index(drop=True)
+        
+        # Verificar gaps temporales
+        if len(df_limpio) > 1:
+            gaps = df_limpio['ds'].diff()
+            gaps_grandes = gaps[gaps > pd.Timedelta(days=7)]
+            if len(gaps_grandes) > 0:
+                alertas.append(f"⚠️ {nombre_dataset}: {len(gaps_grandes)} gaps temporales > 7 días detectados")
+        
+        return df_limpio, alertas
     
     @st.cache_data(ttl=300)
     def cargar_resultados_multimodelo(_self, tipo_llamada='ENTRANTE'):
@@ -132,7 +173,7 @@ class DashboardValidacionCEAPSI:
                 st.error("No se pudo cargar el archivo con ningún encoding")
                 return None
             
-            # Procesar fechas
+            # Procesar fechas con validación estricta
             try:
                 df_completo['FECHA'] = pd.to_datetime(df_completo['FECHA'], format='%d-%m-%Y %H:%M:%S', errors='coerce')
             except:
@@ -140,6 +181,15 @@ class DashboardValidacionCEAPSI:
                 df_completo['FECHA'] = pd.to_datetime(df_completo['FECHA'], dayfirst=True, errors='coerce')
             
             df_completo = df_completo.dropna(subset=['FECHA'])
+            
+            # VALIDACIÓN CRÍTICA: Filtrar fechas futuras
+            fecha_hoy = pd.Timestamp.now().normalize()
+            fechas_futuras = df_completo[df_completo['FECHA'] > fecha_hoy]
+            
+            if len(fechas_futuras) > 0:
+                st.warning(f"⚠️ DATOS FUTUROS DETECTADOS: {len(fechas_futuras)} registros con fechas > {fecha_hoy.date()}")
+                st.info("🔧 Filtrando automáticamente a datos históricos válidos")
+                df_completo = df_completo[df_completo['FECHA'] <= fecha_hoy]
             
             # Agregar columnas derivadas
             df_completo['fecha_solo'] = df_completo['FECHA'].dt.date
@@ -161,6 +211,18 @@ class DashboardValidacionCEAPSI:
         """Header del dashboard de validación"""
         st.title("📊 CEAPSI - Validación de Modelos de Predicción")
         st.markdown("### Dashboard Especializado para Evaluación de Performance")
+        
+        # ALERTA CIENTÍFICA: Indicador de integridad temporal
+        fecha_hoy = pd.Timestamp.now().normalize()
+        with st.container():
+            col1, col2, col3 = st.columns([2, 1, 1])
+            with col1:
+                st.info("🔬 **Integridad Científica Activa**: Solo datos históricos válidos en plots")
+            with col2:
+                st.metric("📅 Fecha Límite", fecha_hoy.strftime('%Y-%m-%d'))
+            with col3:
+                st.success("✅ Sin Data Leakage")
+        
         st.markdown("---")
         
         # Selector de tipo de llamada
@@ -286,30 +348,54 @@ class DashboardValidacionCEAPSI:
         
         # Agregar datos históricos si están disponibles
         if df_historico is not None:
+            # VALIDACIÓN CIENTÍFICA CRÍTICA: Asegurar que datos históricos son realmente históricos
+            fecha_hoy = pd.Timestamp.now().normalize()
+            
+            # Filtrar datos históricos para eliminar fechas futuras
+            df_hist_valido = df_historico[df_historico['ds'] <= fecha_hoy].copy()
+            
+            if len(df_hist_valido) < len(df_historico):
+                fechas_futuras_hist = len(df_historico) - len(df_hist_valido)
+                st.warning(f"⚠️ PLOT: {fechas_futuras_hist} fechas futuras filtradas de datos históricos")
+            
             # Filtrar históricos para que no se solapen con predicciones
-            fecha_limite = df_predicciones['ds'].min() - timedelta(days=1)
-            df_hist_filtrado = df_historico[df_historico['ds'] <= fecha_limite]
+            fecha_limite_pred = df_predicciones['ds'].min() - timedelta(days=1)
+            fecha_limite_final = min(fecha_limite_pred, fecha_hoy)
+            df_hist_filtrado = df_hist_valido[df_hist_valido['ds'] <= fecha_limite_final]
             
-            fig.add_trace(
-                go.Scatter(
-                    x=df_hist_filtrado['ds'],
-                    y=df_hist_filtrado['y'],
-                    mode='lines',
-                    name='Histórico Real',
-                    line=dict(color='black', width=2),
-                    opacity=0.7
-                ),
-                row=1, col=1
-            )
-            
-            # Agregar línea vertical separadora
-            fig.add_vline(
-                x=fecha_limite,
-                line_dash="dash",
-                line_color="red",
-                annotation_text="Inicio Predicciones",
-                annotation_position="top"
-            )
+            if len(df_hist_filtrado) > 0:
+                fig.add_trace(
+                    go.Scatter(
+                        x=df_hist_filtrado['ds'],
+                        y=df_hist_filtrado['y'],
+                        mode='lines',
+                        name='Histórico Real',
+                        line=dict(color='black', width=2),
+                        opacity=0.7
+                    ),
+                    row=1, col=1
+                )
+                
+                # Agregar línea vertical separadora (usando fecha más restrictiva)
+                fig.add_vline(
+                    x=fecha_limite_final,
+                    line_dash="dash",
+                    line_color="red",
+                    annotation_text="Histórico|Predicciones",
+                    annotation_position="top"
+                )
+                
+                # Línea adicional para fecha actual si es diferente
+                if fecha_limite_final < fecha_hoy:
+                    fig.add_vline(
+                        x=fecha_hoy,
+                        line_dash="dot",
+                        line_color="orange",
+                        annotation_text="Hoy",
+                        annotation_position="bottom"
+                    )
+            else:
+                st.warning("⚠️ No hay datos históricos válidos para mostrar en el gráfico")
         
         # Agregar predicciones de cada modelo
         for col in df_predicciones.columns:
@@ -1616,6 +1702,15 @@ class DashboardValidacionCEAPSI:
             df_real['FECHA'] = pd.to_datetime(df_real['FECHA'], errors='coerce')
             df_real = df_real.dropna(subset=['FECHA'])
             
+            # VALIDACIÓN CRÍTICA: Filtrar fechas futuras ANTES de procesar para plots
+            fecha_hoy = pd.Timestamp.now().normalize()
+            fechas_futuras_detectadas = df_real[df_real['FECHA'] > fecha_hoy]
+            
+            if len(fechas_futuras_detectadas) > 0:
+                st.warning(f"⚠️ DATOS FUTUROS DETECTADOS: {len(fechas_futuras_detectadas)} registros con fechas > {fecha_hoy.date()}")
+                st.info("🔧 Filtrando automáticamente a datos históricos válidos para plots")
+                df_real = df_real[df_real['FECHA'] <= fecha_hoy]
+            
             # Filtrar por tipo de llamada
             if 'SENTIDO' in df_real.columns:
                 sentido_filter = 'in' if tipo_llamada.lower() == 'entrante' else 'out'
@@ -1624,10 +1719,16 @@ class DashboardValidacionCEAPSI:
                 # Si no hay columna SENTIDO, usar todos los datos
                 df_filtrado = df_real.copy()
             
-            # Agrupar por día para obtener conteos
+            # Agrupar por día para obtener conteos (SOLO DATOS HISTÓRICOS VÁLIDOS)
             df_diario = df_filtrado.groupby(df_filtrado['FECHA'].dt.date).size().reset_index()
             df_diario.columns = ['ds', 'y']
             df_diario['ds'] = pd.to_datetime(df_diario['ds'])
+            
+            # VALIDACIÓN ADICIONAL: Verificar que no hay fechas futuras después del groupby
+            fechas_futuras_final = df_diario[df_diario['ds'] > fecha_hoy]
+            if len(fechas_futuras_final) > 0:
+                st.error(f"🚨 ERROR CRÍTICO: {len(fechas_futuras_final)} fechas futuras encontradas después de filtrado")
+                df_diario = df_diario[df_diario['ds'] <= fecha_hoy]
             
             # Completar días faltantes con 0 llamadas
             fecha_min = df_diario['ds'].min()
@@ -1655,14 +1756,17 @@ class DashboardValidacionCEAPSI:
     def _crear_datos_ejemplo_historicos(self, tipo_llamada):
         """Crea datos de ejemplo para cuando no hay archivos históricos"""
         try:
-            # IMPORTANTE: Usar fechas fijas para evitar data leakage en demos científicas
-            # Crear 60 días de datos de ejemplo hasta una fecha fija
-            fecha_fin = pd.to_datetime('2023-12-31')  # Fecha fija para consistencia
+            # CORRECCIÓN CIENTÍFICA: Usar fecha actual como referencia para datos históricos válidos
+            # Crear 60 días de datos de ejemplo hasta AYER (no futuro)
+            fecha_hoy = pd.Timestamp.now().normalize()
+            fecha_fin = fecha_hoy - timedelta(days=1)  # Hasta ayer para ser estrictamente histórico
             fechas = pd.date_range(
                 start=fecha_fin - timedelta(days=60),
                 end=fecha_fin,
                 freq='D'
             )
+            
+            st.info(f"📊 Generando datos de ejemplo históricos: {fechas.min().date()} → {fechas.max().date()}")
             
             # Simular patrones de llamadas basados en tipo
             if tipo_llamada.lower() == 'entrante':
@@ -1713,14 +1817,17 @@ class DashboardValidacionCEAPSI:
     def _crear_datos_ejemplo_completos(self):
         """Crea un dataset completo de ejemplo para demostración"""
         try:
-            # IMPORTANTE: Usar fechas fijas para evitar data leakage en demos científicas
-            # Crear 90 días de datos de ejemplo hasta una fecha fija
-            fecha_fin = pd.to_datetime('2023-12-31')  # Fecha fija para consistencia
+            # CORRECCIÓN CIENTÍFICA: Usar fecha actual como referencia para datos históricos válidos
+            # Crear 90 días de datos de ejemplo hasta AYER (no futuro)
+            fecha_hoy = pd.Timestamp.now().normalize()
+            fecha_fin = fecha_hoy - timedelta(days=1)  # Hasta ayer para ser estrictamente histórico
             fechas = pd.date_range(
                 start=fecha_fin - timedelta(days=90),
                 end=fecha_fin,
                 freq='D'
             )
+            
+            st.info(f"📊 Generando dataset completo de ejemplo: {fechas.min().date()} → {fechas.max().date()}")
             
             datos_completos = []
             for i, fecha in enumerate(fechas):

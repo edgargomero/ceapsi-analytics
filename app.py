@@ -362,9 +362,22 @@ class PipelineProcessor:
             if os.path.exists(archivo):
                 os.remove(archivo)
         
-        # Establecer fecha límite basada en datos subidos
-        fecha_corte_datos = self.df_original['FECHA'].max()
+        # VALIDACIÓN CRÍTICA: Establecer fecha límite HISTÓRICA (no futura)
+        fecha_hoy = pd.Timestamp.now().normalize()
+        fecha_max_datos = self.df_original['FECHA'].max().normalize()
+        
+        # NUNCA permitir fechas futuras en datos históricos
+        if fecha_max_datos > fecha_hoy:
+            st.warning(f"⚠️ DATOS FUTUROS DETECTADOS: {fecha_max_datos.date()} > {fecha_hoy.date()}")
+            st.info("🔧 Filtrando automáticamente a datos históricos válidos")
+            fecha_corte_datos = fecha_hoy
+        else:
+            fecha_corte_datos = fecha_max_datos
+            
         st.session_state.fecha_corte_datos = fecha_corte_datos
+        
+        # Filtrar datos originales para eliminar fechas futuras
+        self.df_original = self.df_original[self.df_original['FECHA'] <= fecha_corte_datos]
         
         try:
             # Segmentar por tipo de llamada
@@ -391,10 +404,21 @@ class PipelineProcessor:
                 df_diario['ds'] = pd.to_datetime(df_diario['ds'])
                 df_diario = df_diario.sort_values('ds').reset_index(drop=True)
                 
-                # CRÍTICO: Filtrar dataset de entrenamiento por fecha límite para evitar data leakage
+                # CRÍTICO: Validación estricta de fechas históricas
+                fecha_hoy = pd.Timestamp.now().normalize()
                 if hasattr(st.session_state, 'fecha_corte_datos') and st.session_state.fecha_corte_datos:
-                    fecha_limite = st.session_state.fecha_corte_datos.normalize()
-                    df_diario = df_diario[df_diario['ds'] <= fecha_limite]
+                    fecha_limite = min(st.session_state.fecha_corte_datos.normalize(), fecha_hoy)
+                else:
+                    fecha_limite = fecha_hoy
+                    
+                # Filtrar ESTRICTAMENTE solo datos históricos
+                df_diario = df_diario[df_diario['ds'] <= fecha_limite]
+                
+                # Validar que no hay fechas futuras
+                fechas_futuras = df_diario[df_diario['ds'] > fecha_hoy]
+                if len(fechas_futuras) > 0:
+                    st.error(f"🚨 ERROR CRÍTICO: {len(fechas_futuras)} registros con fechas futuras detectados")
+                    df_diario = df_diario[df_diario['ds'] <= fecha_hoy]
                 
                 # Completar días faltantes - usar rango FILTRADO de datos
                 fecha_min = df_diario['ds'].min()

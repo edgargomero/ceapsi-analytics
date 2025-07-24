@@ -120,15 +120,18 @@ class ChartVisualizer:
                 )
                 
                 # Agregar línea vertical separadora
-                fecha_corte = df_predicciones['ds'].min()
-                fig.add_vline(
-                    x=fecha_corte, 
-                    line_dash="dash", 
-                    line_color="gray",
-                    annotation_text="Inicio Predicciones",
-                    annotation_position="top left",
-                    row=1, col=1
-                )
+                try:
+                    fecha_corte = pd.to_datetime(df_predicciones['ds'].min())
+                    fig.add_vline(
+                        x=fecha_corte, 
+                        line_dash="dash", 
+                        line_color="gray",
+                        annotation_text="Inicio Predicciones",
+                        annotation_position="top left",
+                        row=1, col=1
+                    )
+                except Exception as e:
+                    logger.warning(f"⚠️ No se pudo agregar línea separadora: {e}")
                 
                 # Mostrar estadísticas de optimización
                 if len(df_hist_filtrado) != len(df_hist_optimized):

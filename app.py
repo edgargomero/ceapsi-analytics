@@ -1220,7 +1220,7 @@ def procesar_archivo_usuarios(archivo_usuarios):
 
 def mostrar_seccion_carga_archivos():
     """Sección para cargar archivos de datos"""
-    st.sidebar.markdown("### 📁 Cargar Datos")
+    # Sin título, directo al grano
     
     if st.session_state.datos_cargados:
         if st.session_state.pipeline_completado:
@@ -1428,22 +1428,13 @@ def mostrar_progreso_pipeline():
             with col3:
                 st.caption(paso['tiempo_estimado'])
     
-    # Información adicional con botón funcional
+    # Estado minimalista y centrado en datos
     if progreso == 1.0:
-        st.success("🚀 **¡Sistema listo!** Navega al Dashboard para ver predicciones y análisis detallados.")
+        st.success("✅ Pipeline completado - Ver resultados en Dashboard")
     elif st.session_state.get('datos_cargados', False):
-        st.markdown("---")
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            st.info("📂 **Listo para procesar.** Ejecuta el pipeline para comenzar el análisis.")
-        with col2:
-            if st.button("🚀 Ejecutar Pipeline Completo", type="primary", use_container_width=True, key="progreso_pipeline_btn"):
-                processor = PipelineProcessor(st.session_state.archivo_datos)
-                if processor.ejecutar_pipeline_completo():
-                    st.success("🎉 Pipeline completado exitosamente!")
-                    st.rerun()
+        st.info("📊 Datos cargados - Pipeline se ejecuta automáticamente al cargar archivo")
     else:
-        st.warning("📁 **Comienza aquí:** Sube un archivo CSV o Excel con tus datos de llamadas usando el panel lateral.")
+        st.info("📁 Carga datos desde el panel lateral")
     
     return completados, len(pasos)
 
@@ -1639,10 +1630,8 @@ def main():
         # Guardar página activa para ayuda contextual
         st.session_state.pagina_activa = pagina
         
-        st.markdown("---")
-        st.markdown("### ℹ️ Sistema PCF")
-        st.caption("Versión 2.0 - Pipeline Automatizado")
-        st.caption("CEAPSI - 2025")
+        # Información mínima
+        st.caption("CEAPSI v2.0")
     
     # Mostrar ayuda contextual
     mostrar_ayuda_contextual()
@@ -1670,23 +1659,15 @@ def main():
             # Mostrar estado del pipeline
             mostrar_progreso_pipeline()
             
-            # Si hay datos cargados, mostrar botón para ejecutar pipeline
-            if st.session_state.get('datos_cargados', False) and st.session_state.get('archivo_datos'):
-                st.markdown("---")
-                st.subheader("🚀 Ejecutar Análisis")
-                
-                col1, col2 = st.columns([2, 1])
-                with col1:
-                    st.info("📁 **Sistema listo.** Ejecuta el pipeline para ver predicciones y análisis detallados.")
+            # Estado minimalista
+            if st.session_state.get('datos_cargados', False):
+                col1, col2, col3 = st.columns([1, 2, 1])
                 with col2:
-                    if st.button("🚀 Ejecutar Pipeline", type="primary", use_container_width=True, key="dashboard_pipeline_btn"):
-                        processor = PipelineProcessor(st.session_state.archivo_datos)
-                        if processor.ejecutar_pipeline_completo():
-                            st.success("🎉 Pipeline completado exitosamente!")
-                            st.rerun()
+                    st.info("📊 Datos listos - Pipeline ejecutándose automáticamente")
             else:
-                st.markdown("---")
-                st.info("📁 **Comienza aquí:** Carga un archivo de datos usando el panel lateral para ver análisis y predicciones.")
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col2:
+                    st.info("📁 Carga datos → Panel lateral")
     elif pagina == "🔧 Preparación de Datos":
         if PREP_DATOS_AVAILABLE:
             mostrar_preparacion_datos()

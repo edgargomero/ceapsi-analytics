@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from .components.data_validator import DataValidator
 from .components.data_loader import DataLoader
 from .components.chart_visualizer import ChartVisualizer
+from .dashboard_analytics import AnalyticsModule
 
 # Configurar logging
 logging.basicConfig(
@@ -32,6 +33,7 @@ class DashboardValidacionCEAPSI_V2:
         self.data_validator = DataValidator()
         self.data_loader = DataLoader()
         self.chart_visualizer = ChartVisualizer(data_validator=self.data_validator)
+        self.analytics = AnalyticsModule()
         
         # Path para archivos - usar de session_state si está disponible
         if hasattr(st.session_state, 'archivo_datos') and st.session_state.archivo_datos:
@@ -162,11 +164,78 @@ class DashboardValidacionCEAPSI_V2:
     
     def mostrar_tab_residuales(self, tipo_llamada):
         """Tab de análisis de residuales"""
-        st.info("📊 Análisis de residuales en desarrollo...")
+        logger.info(f"📊 Mostrando análisis de residuales para {tipo_llamada}")
+        
+        # Cargar datos
+        with st.spinner("Cargando datos para análisis de residuales..."):
+            resultados, df_predicciones = self.data_loader.cargar_resultados_multimodelo(tipo_llamada)
+            df_completo = self.data_loader.cargar_datos_completos(
+                archivo_manual=self.archivo_datos_manual,
+                tipo_analisis=tipo_llamada
+            )
+        
+        if df_completo is None or df_predicciones is None:
+            st.warning("⚠️ No hay datos suficientes para análisis de residuales")
+            return
+        
+        df_historico = self._procesar_datos_historicos(df_completo, tipo_llamada)
+        
+        # Calcular residuales simulados basados en datos históricos
+        residuales_data = self.analytics.calcular_residuales(df_historico, df_predicciones)
+        
+        if residuales_data is None:
+            st.warning("⚠️ No se pudieron calcular los residuales")
+            return
+        
+        # Mostrar gráficos de residuales
+        st.subheader("📈 Análisis de Residuales")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Gráfico de residuales vs tiempo
+            self.analytics.mostrar_grafico_residuales_tiempo(residuales_data)
+        
+        with col2:
+            # Histograma de residuales
+            self.analytics.mostrar_histograma_residuales(residuales_data)
+        
+        # Estadísticas de residuales
+        st.subheader("📊 Estadísticas de Residuales")
+        self.analytics.mostrar_estadisticas_residuales(residuales_data)
     
     def mostrar_tab_metricas(self, tipo_llamada):
         """Tab de métricas de performance"""
-        st.info("📊 Métricas detalladas en desarrollo...")
+        logger.info(f"📊 Mostrando métricas de performance para {tipo_llamada}")
+        
+        # Cargar datos
+        with st.spinner("Cargando métricas de performance..."):
+            resultados, df_predicciones = self.data_loader.cargar_resultados_multimodelo(tipo_llamada)
+            df_completo = self.data_loader.cargar_datos_completos(
+                archivo_manual=self.archivo_datos_manual,
+                tipo_analisis=tipo_llamada
+            )
+        
+        if df_completo is None:
+            st.warning("⚠️ No hay datos para calcular métricas")
+            return
+        
+        df_historico = self._procesar_datos_historicos(df_completo, tipo_llamada)
+        
+        # Calcular métricas de performance
+        metricas = self.analytics.calcular_metricas_performance(df_historico, resultados)
+        
+        # Mostrar métricas principales
+        st.subheader("📊 Métricas de Performance de Modelos")
+        self.analytics.mostrar_metricas_modelos(metricas)
+        
+        # Comparación de modelos
+        st.subheader("🏆 Ranking de Modelos")
+        self.analytics.mostrar_ranking_modelos(metricas)
+        
+        # Métricas estadísticas
+        st.subheader("📈 Estadísticas del Dataset")
+        self.analytics.mostrar_estadisticas_dataset(df_historico)
     
     def mostrar_tab_recomendaciones(self, tipo_llamada):
         """Tab de recomendaciones"""

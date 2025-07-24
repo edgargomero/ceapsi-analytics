@@ -90,21 +90,13 @@ except ImportError as e:
 except Exception as e:
     logger.error(f"Error inicializando MCP: {e}")
 
-# Importar módulos del sistema con manejo de errores
+# Importar Dashboard v2 (única versión)
 try:
-    # Intentar cargar versión refactorizada primero
     from ui.dashboard_comparacion_v2 import DashboardValidacionCEAPSI_V2
-    DASHBOARD_V2_AVAILABLE = True
-    logger.info("✅ Dashboard v2 (refactorizado) disponible")
-except ImportError as e:
-    logger.warning(f"Dashboard v2 no disponible: {e}")
-    DASHBOARD_V2_AVAILABLE = False
-
-try:
-    from ui.dashboard_comparacion import DashboardValidacionCEAPSI
     DASHBOARD_AVAILABLE = True
+    logger.info("✅ Dashboard v2 (única versión) disponible")
 except ImportError as e:
-    logger.warning(f"No se pudo importar dashboard_comparacion: {e}")
+    logger.error(f"Dashboard no disponible: {e}")
     DASHBOARD_AVAILABLE = False
 
 try:

@@ -155,7 +155,7 @@ class DataLoader:
                 # En lugar de crear datos de ejemplo, retornar desde session_state si existe
                 if hasattr(st.session_state, 'resultados_pipeline') and st.session_state.resultados_pipeline:
                     logger.info("📁 Usando resultados del pipeline ejecutado")
-                    return self._procesar_resultados_pipeline(st.session_state.resultados_pipeline, tipo_llamada)
+                    return _self._procesar_resultados_pipeline(st.session_state.resultados_pipeline, tipo_llamada)
                 else:
                     logger.warning("⚠️ No hay resultados del pipeline disponibles")
                     st.warning("⚠️ No hay resultados del pipeline para mostrar")

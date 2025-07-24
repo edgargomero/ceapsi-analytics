@@ -261,10 +261,13 @@ class PreparadorDatos:
             # Marcar usuarios que no tienen mapeo con Alodesk
             df_estandar['tiene_alodesk'] = df_estandar['username_alodesk'].notna()
         
-        # Crear campo combinado para análisis
+        # Crear campo combinado para análisis, asignando WEB_CEAPSI a vacíos
         df_estandar['usuario_display'] = df_estandar.get('username_alodesk', '').fillna(
             df_estandar.get('username_reservo', '')
-        )
+        ).fillna('WEB_CEAPSI')
+        
+        # Reemplazar cadenas vacías con WEB_CEAPSI
+        df_estandar.loc[df_estandar['usuario_display'].str.strip() == '', 'usuario_display'] = 'WEB_CEAPSI'
         
         return df_estandar
     

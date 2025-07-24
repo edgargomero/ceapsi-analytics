@@ -1131,14 +1131,14 @@ def procesar_archivo_usuarios(archivo_usuarios):
         # Si no hay USUARIO, intentar crear desde username_alodesk o username_reservo
         if 'USUARIO' not in df.columns:
             if 'username_alodesk' in df.columns:
-                df['USUARIO'] = df['username_alodesk'].fillna(df.get('username_reservo', '')).fillna('Usuario_Desconocido')
-                st.info("ℹ️ Columna USUARIO creada desde 'username_alodesk' y 'username_reservo'.")
+                df['USUARIO'] = df['username_alodesk'].fillna(df.get('username_reservo', '')).fillna('WEB_CEAPSI')
+                st.info("ℹ️ Columna USUARIO creada desde 'username_alodesk' y 'username_reservo'. Vacíos asignados a WEB_CEAPSI.")
             elif 'username_reservo' in df.columns:
-                df['USUARIO'] = df['username_reservo'].fillna('Usuario_Desconocido')
-                st.info("ℹ️ Columna USUARIO creada desde 'username_reservo'.")
+                df['USUARIO'] = df['username_reservo'].fillna('WEB_CEAPSI')
+                st.info("ℹ️ Columna USUARIO creada desde 'username_reservo'. Vacíos asignados a WEB_CEAPSI.")
             else:
-                df['USUARIO'] = df.index.map(lambda x: f'Usuario_{x+1}')
-                st.info("ℹ️ Columna USUARIO no encontrada. Usando numeración automática.")
+                df['USUARIO'] = 'WEB_CEAPSI'
+                st.info("ℹ️ Columna USUARIO no encontrada. Todos los registros asignados a WEB_CEAPSI.")
         
         # Si no hay CARGO, intentar desde Permiso o usar valor por defecto
         if 'CARGO' not in df.columns:
@@ -1151,6 +1151,22 @@ def procesar_archivo_usuarios(archivo_usuarios):
             else:
                 df['CARGO'] = 'Agente'
                 st.info("ℹ️ Columna CARGO no encontrada. Usando 'Agente' por defecto.")
+        
+        # Si USUARIO ya existe pero tiene valores vacíos, asignar WEB_CEAPSI
+        else:
+            # Reemplazar valores vacíos, None, NaN, espacios en blanco con WEB_CEAPSI
+            mask_vacios = (
+                df['USUARIO'].isna() | 
+                (df['USUARIO'] == '') | 
+                (df['USUARIO'].str.strip() == '') |
+                (df['USUARIO'] == 'None') |
+                (df['USUARIO'] == 'nan')
+            )
+            
+            num_vacios = mask_vacios.sum()
+            if num_vacios > 0:
+                df.loc[mask_vacios, 'USUARIO'] = 'WEB_CEAPSI'
+                st.info(f"ℹ️ {num_vacios} registros con USUARIO vacío asignados a WEB_CEAPSI.")
         
         # Limpiar y normalizar datos
         df['TELEFONO'] = df['TELEFONO'].astype(str).str.strip()

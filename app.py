@@ -848,7 +848,7 @@ class PipelineProcessor:
         st.info("💡 Ahora puedes navegar al Dashboard para ver análisis detallados y predicciones interactivas.")
 
 def procesar_archivo_subido(archivo_subido):
-    """Procesa el archivo subido por el usuario y ejecuta el pipeline"""
+    """Procesa el archivo subido por el usuario con autodetección de campos"""
     try:
         logger.info(f"Iniciando procesamiento de archivo: {archivo_subido.name}")
         
@@ -856,29 +856,89 @@ def procesar_archivo_subido(archivo_subido):
         from core.mcp_session_manager import get_mcp_session_manager
         session_manager = get_mcp_session_manager()
         
-        # Guardar archivo temporal
+        # Importar detector de campos
+        from core.field_detector import FieldAutoDetector
+        detector = FieldAutoDetector()
+        
+        # Leer archivo según el tipo
+        if archivo_subido.type == "text/csv" or archivo_subido.name.endswith('.csv'):
+            bytes_data = archivo_subido.read()
+            for encoding in ['utf-8', 'latin-1', 'cp1252']:
+                try:
+                    content = bytes_data.decode(encoding)
+                    # Probar diferentes separadores
+                    for sep in [';', ',', '\t']:
+                        try:
+                            df = pd.read_csv(io.StringIO(content), sep=sep)
+                            if len(df.columns) > 1:  # Separador válido encontrado
+                                st.info(f"📄 Archivo CSV cargado con separador '{sep}' - {len(df)} filas, {len(df.columns)} columnas")
+                                break
+                        except:
+                            continue
+                    break
+                except Exception:
+                    continue
+        else:
+            df = pd.read_excel(archivo_subido)
+            st.info(f"📄 Archivo Excel cargado - {len(df)} filas, {len(df.columns)} columnas")
+        
+        # Mostrar preview de columnas detectadas
+        st.subheader("📋 Columnas Detectadas en el Archivo")
+        with st.expander("👀 Vista Previa de Datos", expanded=False):
+            st.dataframe(df.head(3), use_container_width=True)
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write("**Columnas Disponibles:**")
+                for i, col in enumerate(df.columns, 1):
+                    st.write(f"{i}. `{col}`")
+            with col2:
+                st.write("**Estadísticas:**")
+                st.write(f"• **Filas**: {len(df):,}")
+                st.write(f"• **Columnas**: {len(df.columns)}")
+                st.write(f"• **Tamaño**: {archivo_subido.size/1024:.1f} KB")
+        
+        # AUTODETECCIÓN INTELIGENTE DE CAMPOS
+        st.markdown("---")
+        detected_mapping = detector.detect_fields(df)
+        
+        # Interfaz para corrección manual
+        st.markdown("---")
+        final_mapping = detector.create_manual_mapping_interface(df, detected_mapping)
+        
+        # Validar mapeo final
+        is_valid, errors = detector.validate_final_mapping(final_mapping, df)
+        
+        if not is_valid:
+            st.error("❌ **Errores en el mapeo de campos:**")
+            for error in errors:
+                st.error(f"• {error}")
+            st.stop()
+        
+        # Mostrar resumen del mapeo final
+        if final_mapping:
+            st.success("✅ **Mapeo de campos validado correctamente**")
+            with st.expander("📋 Resumen del Mapeo Final"):
+                for field, column in final_mapping.items():
+                    st.write(f"• **{field}** ← `{column}`")
+        
+        # Procesar solo si el usuario confirma
+        if not st.button("🚀 Confirmar y Procesar Archivo", type="primary", use_container_width=True):
+            st.info("👆 Confirma el mapeo de campos para procesar el archivo")
+            return
+        
+        # Aplicar mapeo a DataFrame
+        df_mapped = df.copy()
+        df_mapped = df_mapped.rename(columns={v: k for k, v in final_mapping.items()})
+        
+        # Validación adicional de campos críticos
+        if 'FECHA' not in df_mapped.columns or 'TELEFONO' not in df_mapped.columns:
+            st.error("❌ Los campos FECHA y TELEFONO son obligatorios")
+            return
+        
+        # Guardar archivo temporal con mapeo aplicado
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as tmp_file:
-            # Leer archivo según el tipo
-            if archivo_subido.type == "text/csv" or archivo_subido.name.endswith('.csv'):
-                bytes_data = archivo_subido.read()
-                for encoding in ['utf-8', 'latin-1', 'cp1252']:
-                    try:
-                        content = bytes_data.decode(encoding)
-                        df = pd.read_csv(io.StringIO(content), sep=';')
-                        break
-                    except Exception:
-                        continue
-            else:
-                df = pd.read_excel(archivo_subido)
-            
-            # Validar columnas requeridas
-            columnas_requeridas = ['FECHA', 'TELEFONO']
-            if not all(col in df.columns for col in columnas_requeridas):
-                st.error(f"Columnas faltantes: {set(columnas_requeridas) - set(df.columns)}")
-                return
-            
-            # Guardar archivo
-            df.to_csv(tmp_file, sep=';', index=False)
+            df_mapped.to_csv(tmp_file, sep=';', index=False)
             temp_path = tmp_file.name
         
         # Crear sesión de análisis
@@ -886,9 +946,10 @@ def procesar_archivo_subido(archivo_subido):
             'filename': archivo_subido.name,
             'size': archivo_subido.size,
             'type': archivo_subido.type,
-            'records_count': len(df),
-            'columns': list(df.columns),
-            'temp_path': temp_path
+            'records_count': len(df_mapped),
+            'columns': list(df_mapped.columns),
+            'temp_path': temp_path,
+            'field_mapping': final_mapping
         }
         
         # Crear nueva sesión (usando un user_id por defecto si no hay autenticación)
@@ -901,19 +962,22 @@ def procesar_archivo_subido(archivo_subido):
         st.session_state.archivo_datos = temp_path
         st.session_state.datos_cargados = True
         
-        # Mostrar información consolidada del archivo cargado (una sola vez)
-        if 'FECHA' in df.columns:
+        # Mostrar información consolidada del archivo procesado
+        st.markdown("---")
+        st.subheader("📊 Archivo Procesado y Listo")
+        
+        if 'FECHA' in df_mapped.columns:
             try:
-                df['FECHA'] = pd.to_datetime(df['FECHA'], errors='coerce')
-                fecha_min = df['FECHA'].min()
-                fecha_max = df['FECHA'].max()
+                df_mapped['FECHA'] = pd.to_datetime(df_mapped['FECHA'], errors='coerce')
+                fecha_min = df_mapped['FECHA'].min()
+                fecha_max = df_mapped['FECHA'].max()
                 
                 # Mensaje único con información completa
-                mensaje_info = f"✅ **Archivo cargado**: {len(df):,} registros | 📅 **Período**: {fecha_min.date()} → {fecha_max.date()}"
+                mensaje_info = f"✅ **Archivo procesado**: {len(df_mapped):,} registros mapeados | 📅 **Período**: {fecha_min.date()} → {fecha_max.date()}"
                 
                 # Agregar distribución si existe columna SENTIDO
-                if 'SENTIDO' in df.columns:
-                    dist_sentido = df['SENTIDO'].value_counts()
+                if 'SENTIDO' in df_mapped.columns:
+                    dist_sentido = df_mapped['SENTIDO'].value_counts()
                     entrantes = dist_sentido.get('in', 0)
                     salientes = dist_sentido.get('out', 0)
                     mensaje_info += f" | 📊 **Entrantes**: {entrantes:,} | **Salientes**: {salientes:,}"
@@ -921,10 +985,10 @@ def procesar_archivo_subido(archivo_subido):
                 st.success(mensaje_info)
                     
             except Exception as e:
-                st.success(f"✅ **Archivo cargado**: {len(df):,} registros")
+                st.success(f"✅ **Archivo procesado**: {len(df_mapped):,} registros")
                 st.warning(f"⚠️ No se pudo analizar completamente el rango de fechas: {e}")
         else:
-            st.success(f"✅ **Archivo cargado**: {len(df):,} registros")
+            st.success(f"✅ **Archivo procesado**: {len(df_mapped):,} registros")
         
         # Preguntar si ejecutar pipeline
         if st.button("🚀 Ejecutar Pipeline Completo", type="primary", use_container_width=True, key="main_pipeline_btn"):

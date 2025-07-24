@@ -694,204 +694,64 @@ class PipelineProcessor:
             return False
     
     def ejecutar_pipeline_completo(self):
-        """Ejecutar todo el pipeline con indicadores de progreso mejorados"""
-        st.subheader("🚀 Ejecutando Pipeline Completo")
-        
-        # Configuración de pasos del pipeline con estimaciones de tiempo
-        pasos = [
-            {
-                "nombre": "Auditoría de Datos",
-                "icono": "🔍",
-                "funcion": self.ejecutar_auditoria,
-                "tiempo_estimado": 15,
-                "descripcion": "Analizando calidad y patrones de datos"
-            },
-            {
-                "nombre": "Segmentación de Llamadas", 
-                "icono": "🔀",
-                "funcion": self.ejecutar_segmentacion,
-                "tiempo_estimado": 20,
-                "descripcion": "Clasificando llamadas entrantes y salientes"
-            },
-            {
-                "nombre": "Entrenamiento de Modelos",
-                "icono": "🤖", 
-                "funcion": self.ejecutar_entrenamiento_modelos,
-                "tiempo_estimado": 45,
-                "descripcion": "Entrenando 4 algoritmos de IA (ARIMA, Prophet, RF, GB)"
-            },
-            {
-                "nombre": "Generación de Predicciones",
-                "icono": "🔮",
-                "funcion": self.generar_predicciones,
-                "tiempo_estimado": 25,
-                "descripcion": "Generando predicciones para los próximos 28 días"
-            }
-        ]
-        
-        # Calcular tiempo total estimado
-        tiempo_total_estimado = sum(paso["tiempo_estimado"] for paso in pasos)
-        
-        # Crear contenedores para progreso visual
-        progress_container = st.container()
-        with progress_container:
-            # Barra de progreso general
-            st.markdown("### 📊 Progreso General")
-            progress_bar = st.progress(0)
+        """Ejecutar todo el pipeline de forma simplificada"""
+        try:
+            # Progress bar simple
+            progress_bar = st.progress(0, text="Iniciando pipeline...")
             
-            # Información de tiempo
+            # 1. Auditoría
+            progress_bar.progress(0.2, text="🔍 Analizando datos...")
+            if not self.ejecutar_auditoria():
+                st.error("❌ Error en auditoría")
+                return False
+            
+            # 2. Segmentación
+            progress_bar.progress(0.4, text="🔀 Segmentando llamadas...")
+            if not self.ejecutar_segmentacion():
+                st.error("❌ Error en segmentación")
+                return False
+            
+            # 3. Entrenamiento
+            progress_bar.progress(0.6, text="🤖 Entrenando modelos...")
+            if not self.ejecutar_entrenamiento_modelos():
+                st.error("❌ Error en entrenamiento")
+                return False
+            
+            # 4. Predicciones
+            progress_bar.progress(0.8, text="🔮 Generando predicciones...")
+            if not self.generar_predicciones():
+                st.error("❌ Error en predicciones")
+                return False
+            
+            # Completado
+            progress_bar.progress(1.0, text="✅ Pipeline completado!")
+            
+            # Actualizar estados
+            st.session_state.pipeline_completado = True
+            st.session_state.eda_completado = True
+            st.session_state.modelos_entrenados = True
+            st.session_state.predicciones_generadas = True
+            st.session_state.visualizaciones_listas = True
+            
+            # Mostrar resumen simple
             col1, col2, col3 = st.columns(3)
             with col1:
-                tiempo_transcurrido_placeholder = st.empty()
+                st.metric("Registros", f"{self.resultados.get('auditoria', {}).get('total_registros', 0):,}")
             with col2:
-                tiempo_restante_placeholder = st.empty()
+                st.metric("Modelos", "4")
             with col3:
-                paso_actual_placeholder = st.empty()
+                st.metric("Días predichos", "28")
             
-            # Estado compacto de cada paso
-            st.markdown("#### 📋 Estado")
-            pasos_status = []
-            for paso in pasos:
-                pasos_status.append(st.empty())
-        
-        # Inicializar tiempos
-        import time
-        tiempo_inicio = time.time()
-        tiempo_acumulado = 0
-        
-        # Ejecutar cada paso
-        for i, paso in enumerate(pasos):
-            # Actualizar paso actual
-            paso_actual_placeholder.metric(
-                "Paso Actual",
-                f"{i+1}/{len(pasos)}",
-                f"{paso['nombre']}"
-            )
+            st.success("✅ Pipeline completado - Ve al Dashboard para ver resultados")
+            return True
             
-            # Actualizar estado compacto de todos los pasos
-            for j, status_placeholder in enumerate(pasos_status):
-                if j < i:
-                    status_placeholder.success(f"✅ {pasos[j]['nombre']}")
-                elif j == i:
-                    status_placeholder.info(f"⏳ {paso['nombre']} - {paso['descripcion']}")
-                else:
-                    status_placeholder.write(f"⏸️ {pasos[j]['nombre']}")
-            
-            # Ejecutar paso con medición de tiempo
-            tiempo_paso_inicio = time.time()
-            
-            try:
-                if paso["funcion"]():
-                    tiempo_paso_fin = time.time()
-                    tiempo_paso_real = tiempo_paso_fin - tiempo_paso_inicio
-                    tiempo_acumulado += tiempo_paso_real
-                    
-                    # Actualizar progreso
-                    progreso = (i + 1) / len(pasos)
-                    progress_bar.progress(progreso)
-                    
-                    # Actualizar tiempos
-                    tiempo_transcurrido = time.time() - tiempo_inicio
-                    tiempo_restante = (tiempo_total_estimado - tiempo_acumulado) if tiempo_acumulado < tiempo_total_estimado else 0
-                    
-                    tiempo_transcurrido_placeholder.metric(
-                        "Tiempo Transcurrido",
-                        f"{int(tiempo_transcurrido)}s",
-                        f"{tiempo_transcurrido/60:.1f} min"
-                    )
-                    
-                    tiempo_restante_placeholder.metric(
-                        "Tiempo Restante",
-                        f"{int(tiempo_restante)}s",
-                        f"{tiempo_restante/60:.1f} min"
-                    )
-                    
-                    # Marcar paso como completado
-                    pasos_status[i].success(f"✅ {paso['nombre']} ({tiempo_paso_real:.1f}s)")
-                    
-                else:
-                    pasos_status[i].error(f"❌ {paso['nombre']} - Error")
-                    st.error(f"❌ Error en {paso['nombre']}")
-                    return False
-                    
-            except Exception as e:
-                pasos_status[i].error(f"❌ {paso['nombre']} - Error: {str(e)[:50]}...")
-                st.error(f"❌ Error en {paso['nombre']}: {str(e)}")
-                return False
-        
-        # Finalización exitosa
-        progress_bar.progress(1.0)
-        paso_actual_placeholder.metric(
-            "Estado Final",
-            "Completado",
-            "🎉 ¡Éxito!"
-        )
-        
-        tiempo_total_real = time.time() - tiempo_inicio
-        tiempo_transcurrido_placeholder.metric(
-            "Tiempo Total",
-            f"{int(tiempo_total_real)}s",
-            f"{tiempo_total_real/60:.1f} min"
-        )
-        tiempo_restante_placeholder.metric(
-            "Tiempo Restante",
-            "0s",
-            "Finalizado"
-        )
-        
-        st.balloons()
-        
-        # Mostrar resumen final
-        self.mostrar_resumen_pipeline()
-        
-        return True
+        except Exception as e:
+            st.error(f"❌ Error en pipeline: {str(e)}")
+            return False
     
     def mostrar_resumen_pipeline(self):
-        """Mostrar resumen del pipeline ejecutado"""
-        st.success("🎉 ¡Pipeline CEAPSI ejecutado exitosamente!")
-        
-        st.subheader("📊 Resumen de Resultados")
-        
-        # Métricas principales
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric(
-                "Registros Procesados", 
-                f"{self.resultados['auditoria']['total_registros']:,}"
-            )
-        
-        with col2:
-            st.metric(
-                "Modelos Entrenados", 
-                len(self.resultados.get('modelos', {})) * 4  # 4 algoritmos por tipo
-            )
-        
-        with col3:
-            predicciones_total = sum(len(p) for p in self.resultados.get('predicciones', {}).values())
-            st.metric("Predicciones Generadas", predicciones_total)
-        
-        with col4:
-            st.metric("Pipeline Status", "✅ Completado")
-        
-        # Detalles por tipo de llamada
-        if 'modelos' in self.resultados:
-            st.subheader("🤖 Modelos por Tipo de Llamada")
-            
-            for tipo, info_modelos in self.resultados['modelos'].items():
-                with st.expander(f"📞 Llamadas {tipo.capitalize()}"):
-                    
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        st.write("**Métricas de Modelos:**")
-                        for nombre_modelo, metricas in info_modelos['modelos'].items():
-                            st.write(f"• {nombre_modelo.replace('_', ' ').title()}: MAE = {metricas['mae_cv']:.2f}")
-                    
-                    with col2:
-                        st.write("**Pesos Ensemble:**")
-                        for nombre_modelo, peso in info_modelos['pesos_ensemble'].items():
-                            st.write(f"• {nombre_modelo.replace('_', ' ').title()}: {peso:.3f}")
+        """Mostrar resumen simplificado del pipeline"""
+        pass  # Ya se muestra en ejecutar_pipeline_completo
         
         # Guardar resultados en session state
         st.session_state.resultados_pipeline = self.resultados
@@ -1064,10 +924,10 @@ def procesar_archivo_subido(archivo_subido):
         else:
             st.success(f"✅ **Archivo procesado**: {len(df_mapped):,} registros")
         
-        # Preguntar si ejecutar pipeline
-        if st.button("🚀 Ejecutar Pipeline Completo", type="primary", use_container_width=True, key="main_pipeline_btn"):
-            processor = PipelineProcessor(temp_path)
-            processor.ejecutar_pipeline_completo()
+        # Ejecutar pipeline automáticamente
+        st.info("🔄 Ejecutando pipeline automáticamente...")
+        processor = PipelineProcessor(temp_path)
+        processor.ejecutar_pipeline_completo()
         
     except Exception as e:
         logger.error(f"Error procesando archivo: {e}")
@@ -1339,7 +1199,21 @@ def mostrar_card_metrica_mejorada(titulo, valor, descripcion, icono, color="#4CA
                 help=descripcion
             )
 
+def mostrar_progreso_pipeline_simple():
+    """Mostrar progreso simplificado del pipeline"""
+    if st.session_state.get('pipeline_completado', False):
+        st.success("✅ Pipeline completado - Ver resultados en Dashboard")
+    elif st.session_state.get('datos_cargados', False):
+        progress = st.progress(0.5, text="⚙️ Pipeline ejecutándose...")
+    else:
+        st.info("📁 Carga un archivo para comenzar")
+
 def mostrar_progreso_pipeline():
+    """Muestra el progreso simplificado del pipeline"""
+    # Solo mostrar el estado simple sin toda la complejidad
+    return mostrar_progreso_pipeline_simple()
+
+def mostrar_progreso_pipeline_complejo():
     """Muestra el progreso visual mejorado del pipeline"""
     st.markdown("### 📋 Estado del Pipeline CEAPSI")
     

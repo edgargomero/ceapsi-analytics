@@ -332,9 +332,7 @@ class PipelineProcessor:
             
             self.resultados['auditoria'] = auditoria
             
-            st.success("✅ Auditoría completada")
-            
-            # Mostrar resultados de auditoría
+            # Mostrar resultados de auditoría en formato compacto
             col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.metric("Total Registros", f"{auditoria['total_registros']:,}")
@@ -363,12 +361,10 @@ class PipelineProcessor:
         for archivo in archivos_cache:
             if os.path.exists(archivo):
                 os.remove(archivo)
-                st.info(f"🗑️ Limpiando cache anterior: {archivo}")
         
         # Establecer fecha límite basada en datos subidos
         fecha_corte_datos = self.df_original['FECHA'].max()
         st.session_state.fecha_corte_datos = fecha_corte_datos
-        st.info(f"📅 **Fecha límite de datos subidos**: {fecha_corte_datos.date()}")
         
         try:
             # Segmentar por tipo de llamada
@@ -399,14 +395,10 @@ class PipelineProcessor:
                 if hasattr(st.session_state, 'fecha_corte_datos') and st.session_state.fecha_corte_datos:
                     fecha_limite = st.session_state.fecha_corte_datos.normalize()
                     df_diario = df_diario[df_diario['ds'] <= fecha_limite]
-                    st.info(f"🔐 **{tipo.capitalize()}**: Datos filtrados hasta {fecha_limite.date()}")
                 
                 # Completar días faltantes - usar rango FILTRADO de datos
                 fecha_min = df_diario['ds'].min()
                 fecha_max = df_diario['ds'].max()
-                
-                # Mostrar información del rango detectado
-                st.info(f"📅 **{tipo.capitalize()}**: Rango final de entrenamiento {fecha_min.date()} → {fecha_max.date()}")
                 
                 todas_fechas = pd.date_range(start=fecha_min, end=fecha_max, freq='D')
                 todas_fechas = todas_fechas[todas_fechas.dayofweek < 5]  # Solo días laborales
@@ -431,9 +423,7 @@ class PipelineProcessor:
                 'datasets': datasets
             }
             
-            st.success("✅ Segmentación completada")
-            
-            # Mostrar resultados de segmentación
+            # Mostrar resultados de segmentación en formato compacto
             col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.metric("Llamadas Entrantes", f"{len(df_entrantes):,}")
@@ -474,8 +464,6 @@ class PipelineProcessor:
                 st.success(f"✅ Modelos entrenados para {tipo}")
             
             self.resultados['modelos'] = modelos_entrenados
-            
-            st.success("✅ Entrenamiento de modelos completado")
             return True
             
         except Exception as e:
@@ -565,12 +553,8 @@ class PipelineProcessor:
                 # Usar la menor entre fecha de corte y última fecha del dataset
                 if fecha_corte_subida:
                     ultima_fecha = min(fecha_corte_subida.normalize(), ultima_fecha_dataset)
-                    st.info(f"🔐 **Control Data Leakage**: Usando fecha límite {ultima_fecha.date()}")
-                    st.info(f"    • Datos subidos hasta: {fecha_corte_subida.date()}")
-                    st.info(f"    • Dataset procesado hasta: {ultima_fecha_dataset.date()}")
                 else:
                     ultima_fecha = ultima_fecha_dataset
-                    st.warning("⚠️ No se encontró fecha límite de datos subidos, usando máxima del dataset")
                 
                 # Generar fechas futuras REALES (próximos 28 días laborales desde la fecha límite)
                 fechas_futuras = []
@@ -605,8 +589,6 @@ class PipelineProcessor:
                 predicciones[tipo] = predicciones_tipo
             
             self.resultados['predicciones'] = predicciones
-            
-            st.success("✅ Predicciones generadas")
             return True
             
         except Exception as e:
@@ -895,25 +877,30 @@ def procesar_archivo_subido(archivo_subido):
         st.session_state.archivo_datos = temp_path
         st.session_state.datos_cargados = True
         
-        # Mostrar información del rango de fechas detectado
+        # Mostrar información consolidada del archivo cargado (una sola vez)
         if 'FECHA' in df.columns:
             try:
                 df['FECHA'] = pd.to_datetime(df['FECHA'], errors='coerce')
                 fecha_min = df['FECHA'].min()
                 fecha_max = df['FECHA'].max()
-                st.success(f"✅ Archivo cargado: {len(df)} registros")
-                st.info(f"📅 **Rango completo de datos**: {fecha_min.date()} → {fecha_max.date()}")
                 
-                # Verificar distribución por tipo si existe
+                # Mensaje único con información completa
+                mensaje_info = f"✅ **Archivo cargado**: {len(df):,} registros | 📅 **Período**: {fecha_min.date()} → {fecha_max.date()}"
+                
+                # Agregar distribución si existe columna SENTIDO
                 if 'SENTIDO' in df.columns:
                     dist_sentido = df['SENTIDO'].value_counts()
-                    st.info(f"📊 **Distribución**: {dict(dist_sentido)}")
+                    entrantes = dist_sentido.get('in', 0)
+                    salientes = dist_sentido.get('out', 0)
+                    mensaje_info += f" | 📊 **Entrantes**: {entrantes:,} | **Salientes**: {salientes:,}"
+                
+                st.success(mensaje_info)
                     
             except Exception as e:
-                st.warning(f"No se pudo analizar el rango de fechas: {e}")
-                st.success(f"✅ Archivo cargado: {len(df)} registros")
+                st.success(f"✅ **Archivo cargado**: {len(df):,} registros")
+                st.warning(f"⚠️ No se pudo analizar completamente el rango de fechas: {e}")
         else:
-            st.success(f"✅ Archivo cargado: {len(df)} registros")
+            st.success(f"✅ **Archivo cargado**: {len(df):,} registros")
         
         # Preguntar si ejecutar pipeline
         if st.button("🚀 Ejecutar Pipeline Completo", type="primary", use_container_width=True, key="main_pipeline_btn"):
@@ -1074,11 +1061,10 @@ def mostrar_seccion_carga_archivos():
     st.sidebar.markdown("### 📁 Cargar Datos")
     
     if st.session_state.datos_cargados:
-        st.sidebar.success("✅ Datos cargados")
         if st.session_state.pipeline_completado:
-            st.sidebar.success("✅ Pipeline completado")
+            st.sidebar.success("✅ Análisis completado")
         else:
-            st.sidebar.warning("⚠️ Pipeline pendiente")
+            st.sidebar.info("📊 Datos listos - Pipeline pendiente")
         
         if st.sidebar.button("🗑️ Limpiar Datos", use_container_width=True):
             st.session_state.archivo_datos = None
@@ -1103,43 +1089,15 @@ def mostrar_seccion_carga_archivos():
 def mostrar_dashboard():
     """Mostrar dashboard con resultados del pipeline - mejorado con UI optimizada"""
     
-    # Mostrar estado del sistema si UI optimizada está disponible
-    if OPTIMIZED_UI_AVAILABLE:
-        status_msg = "Dashboard cargado con optimizaciones"
-        if hasattr(st.session_state, 'archivo_datos') and st.session_state.archivo_datos:
-            status_msg += f" - Datos: {os.path.basename(st.session_state.archivo_datos)}"
-        show_status('success', status_msg)
+    # Inicialización silenciosa del dashboard optimizado
     
     if DASHBOARD_AVAILABLE:
         try:
             dashboard = DashboardValidacionCEAPSI()
             
-            # Verificar y transferir archivo de datos con debugging
+            # Verificar y transferir archivo de datos (sin mensajes duplicados)
             if hasattr(st.session_state, 'archivo_datos') and st.session_state.archivo_datos:
                 dashboard.archivo_datos_manual = st.session_state.archivo_datos
-                
-                # Mostrar información con UI optimizada si está disponible
-                if OPTIMIZED_UI_AVAILABLE:
-                    show_status('success', f'📁 Usando datos cargados: {os.path.basename(st.session_state.archivo_datos)}')
-                else:
-                    st.success(f"📁 Usando datos cargados: {os.path.basename(st.session_state.archivo_datos)}")
-                
-                # Verificar rango de fechas del archivo real
-                try:
-                    df_temp = pd.read_csv(st.session_state.archivo_datos, sep=';')
-                    df_temp['FECHA'] = pd.to_datetime(df_temp['FECHA'], errors='coerce')
-                    fecha_min = df_temp['FECHA'].min()
-                    fecha_max = df_temp['FECHA'].max()
-                    
-                    if OPTIMIZED_UI_AVAILABLE:
-                        show_status('info', f'📅 Rango de datos: {fecha_min.date()} → {fecha_max.date()}')
-                    else:
-                        st.info(f"📅 **Rango de datos**: {fecha_min.date()} → {fecha_max.date()}")
-                except Exception as e:
-                    if OPTIMIZED_UI_AVAILABLE:
-                        show_status('warning', f'No se pudo determinar el rango de fechas: {e}')
-                    else:
-                        st.warning(f"No se pudo determinar el rango de fechas: {e}")
             else:
                 if OPTIMIZED_UI_AVAILABLE:
                     show_status('warning', '⚠️ No hay archivo de datos cargado. Dashboard usará datos de ejemplo.')
@@ -1315,7 +1273,7 @@ def mostrar_progreso_pipeline():
         st.markdown("---")
         col1, col2 = st.columns([2, 1])
         with col1:
-            st.info("📂 **Datos cargados correctamente.** Ejecuta el pipeline para comenzar el procesamiento.")
+            st.info("📂 **Listo para procesar.** Ejecuta el pipeline para comenzar el análisis.")
         with col2:
             if st.button("🚀 Ejecutar Pipeline Completo", type="primary", use_container_width=True, key="progreso_pipeline_btn"):
                 processor = PipelineProcessor(st.session_state.archivo_datos)
@@ -1557,7 +1515,7 @@ def main():
                 
                 col1, col2 = st.columns([2, 1])
                 with col1:
-                    st.info("📁 **Datos cargados correctamente.** Ejecuta el pipeline para ver predicciones y análisis detallados.")
+                    st.info("📁 **Sistema listo.** Ejecuta el pipeline para ver predicciones y análisis detallados.")
                 with col2:
                     if st.button("🚀 Ejecutar Pipeline", type="primary", use_container_width=True, key="dashboard_pipeline_btn"):
                         processor = PipelineProcessor(st.session_state.archivo_datos)

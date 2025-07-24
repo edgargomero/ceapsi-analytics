@@ -497,7 +497,7 @@ class AnalyticsModule:
                     showscale=True,
                     colorbar=dict(title="Llamadas")
                 ),
-                text=datos_diarios['fecha_solo'],
+                text=[str(fecha) for fecha in datos_diarios['fecha_solo']],
                 hovertemplate='<b>%{text}</b><br>Llamadas: %{marker.color}<extra></extra>',
                 showlegend=False
             ))
@@ -517,7 +517,7 @@ class AnalyticsModule:
             col1, col2, col3 = st.columns(3)
             with col1:
                 dia_mas_llamadas = datos_diarios.loc[datos_diarios['llamadas'].idxmax(), 'fecha_solo']
-                st.metric("📅 Día Más Activo", dia_mas_llamadas)
+                st.metric("📅 Día Más Activo", str(dia_mas_llamadas))
             with col2:
                 max_llamadas = datos_diarios['llamadas'].max()
                 st.metric("📞 Máximo Diario", f"{max_llamadas}")

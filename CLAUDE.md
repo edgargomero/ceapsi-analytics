@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-**CEAPSI** is a comprehensive call center prediction and analysis system with dual architecture - a Streamlit frontend for interactive analysis and a FastAPI backend for secure API operations. The system leverages multiple machine learning models for call volume prediction and includes advanced security features.
+**CEAPSI** is a comprehensive call center prediction and analysis system with a Streamlit-based architecture for interactive analysis. The system leverages multiple machine learning models for call volume prediction and includes advanced analytics features.
 
 ## Key Commands
 
-### Streamlit Frontend (Primary Interface)
+### Streamlit Application
 ```bash
 # Main application
 streamlit run app.py
@@ -16,43 +16,28 @@ streamlit run app.py
 # Development launcher
 python scripts/development/run.py
 
-# Legacy version (backup)
+# Legacy versions (backup)
 streamlit run app_legacy.py
-```
-
-### FastAPI Backend (Optional API Layer)
-```bash
-# Start backend server
-cd backend
-uvicorn app.main:app --reload --port 8000
-
-# Backend deployment
-python scripts/deployment/deploy_backend.py
+streamlit run app_too_optimized.py
 ```
 
 ### Testing and Validation
 ```bash
-# Backend tests (pytest-based)
-cd backend
-pytest tests/unit/
-pytest tests/integration/ 
-pytest tests/fixtures/
-
-# System validation (custom)
+# System validation
 python verify_ceapsi.py
 python fix_ceapsi.py
+
+# Backend tests (if using API)
+cd backend
+pytest tests/
 ```
 
 ### Development Dependencies
 ```bash
-# Frontend dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# Backend dependencies  
-pip install -r backend/requirements.txt
-
-# Code formatting (backend)
-cd backend
+# Code formatting (optional)
 black .
 isort .
 flake8 .
@@ -60,59 +45,69 @@ flake8 .
 
 ## Architecture Overview
 
-### Hybrid Architecture
+### Single Page Application Architecture
 - **Frontend**: Streamlit app (`app.py`) - Interactive dashboard with ML predictions
-- **Backend**: FastAPI (`backend/app/main.py`) - Optional secure API layer
-- **Database**: Supabase - Authentication, session storage, and data persistence
-- **Storage**: Local files + Supabase for session data and analysis results
+- **Dashboard**: Dashboard v2 (`src/ui/dashboard_comparacion_v2.py`) - Advanced analytics
+- **Database**: Supabase - Authentication and data persistence
+- **Storage**: Local files + Supabase for session data
 
 ### Core Components
 
 #### Frontend Layer (`src/`)
-- **UI Components** (`src/ui/`): Optimized, reusable dashboard components with lazy loading
-- **ML Models** (`src/models/`): Multi-model ensemble (Prophet, XGBoost, Random Forest, Linear Regression)
+- **UI Components** (`src/ui/`): 
+  - `dashboard_comparacion_v2.py` - Main dashboard with 5 tabs
+  - `components/` - Modular components (data_loader, data_validator, chart_visualizer)
+  - `dashboard_analytics.py` - Advanced analytics module
+- **ML Models** (`src/models/`): Multi-model ensemble (Prophet, ARIMA, Random Forest, Gradient Boosting)
 - **Services** (`src/services/`): Data processing pipelines and automation
 - **Authentication** (`src/auth/`): Supabase integration with secure token management
 
-#### Backend Layer (`backend/app/`)
-- **Security** (`core/`): Rate limiting, file validation, error handling, authentication
-- **API Routes** (`api/routers/`): REST endpoints for analysis, data, sessions, models
-- **Configuration** (`core/config.py`): Environment-based settings management
+#### Dashboard v2 Features
+1. **📊 Predicciones vs Real**: Interactive predictions with enhanced navigation
+2. **📈 Análisis de Residuales**: Temporal and distribution analysis
+3. **🎯 Métricas de Performance**: Model comparison with stability analysis
+4. **🔥 Mapas de Calor**: 3 temporal heatmap views (weekly, hourly, calendar)
+5. **📋 Recomendaciones**: Automated insights (in development)
 
 #### Data Flow Architecture
-1. **Data Input**: CSV/Excel upload with format validation
-2. **Processing**: Multi-model training and prediction pipeline
-3. **Storage**: Results cached in Supabase with session management
-4. **Output**: Interactive Plotly visualizations and downloadable reports
+1. **Data Input**: CSV/Excel upload with automatic field detection
+2. **Processing**: 4-stage pipeline (Audit → Segment → Train → Predict)
+3. **Storage**: Results in `st.session_state.resultados_pipeline`
+4. **Output**: Interactive Plotly visualizations
 
 ### Security Features
-- **Rate Limiting**: 60 requests/minute per IP
-- **File Validation**: Anti-malware scanning and format verification
-- **Authentication**: Supabase JWT with role-based access (Admin/Analyst/Viewer)
-- **Key Separation**: Anonymous keys for frontend, service role keys for backend
-- **Error Handling**: Secure error messages without sensitive data exposure
+- **Authentication**: Supabase JWT required for access
+- **File Validation**: Format verification and encoding detection
+- **Error Handling**: Secure error messages without sensitive data
+- **Key Management**: ANON_KEY for frontend, SERVICE_ROLE_KEY for backend only
 
 ## Development Patterns
 
 ### Data Processing Pipeline
 - **Required Columns**: `FECHA`, `TELEFONO`, `SENTIDO`, `ATENDIDA`
-- **Supported Formats**: CSV, Excel with automatic encoding detection
-- **Processing Speed**: ~5 seconds for 341k records (optimized pipeline)
-- **Error Recovery**: Comprehensive retry logic and fallback mechanisms
-- **Resource Monitoring**: Real-time CPU/RAM monitoring during execution
+- **Supported Formats**: CSV (semicolon-separated), Excel
+- **Processing Speed**: ~5 seconds for 341k records
+- **Automatic Features**:
+  - Field auto-detection with manual override
+  - Multiple encoding support (utf-8, latin-1, cp1252)
+  - Future date filtering
+  - Missing user assignment to 'WEB_CEAPSI'
 
 ### Machine Learning Workflow
-- **Multi-Model Ensemble**: Prophet, ARIMA, Random Forest, Gradient Boosting
-- **Performance Targets**: Realistic metrics based on historical data
-- **Pipeline Execution**: 4-stage process with detailed logging
-- **Results Storage**: Automatic saving to `st.session_state.resultados_pipeline`
-- **Dashboard Integration**: Seamless handoff from pipeline to visualization
+- **Models**: Prophet, ARIMA, Random Forest, Gradient Boosting
+- **Pipeline Stages**:
+  1. 🔍 Auditoría (15s) - Data quality validation
+  2. 🔀 Segmentación (20s) - Inbound/outbound separation
+  3. 🤖 Entrenamiento (45s) - Model training
+  4. 🔮 Predicciones (25s) - 28-day forecasting
+- **Results**: Stored in session state for dashboard access
 
-### Session Management (MCP Protocol)
-- **Session Tracking**: UUID-based session identification
-- **State Persistence**: Analysis results and uploaded files cached
-- **User Context**: Role-based feature access and data visibility
-- **Database Integration**: Automatic session metadata storage
+### Advanced Analytics Features
+- **Residual Analysis**: Error patterns and distribution
+- **Performance Metrics**: MAE, RMSE, MAPE, R² with interpretations
+- **Stability Analysis**: Temporal stability with anomaly detection
+- **Period Comparison**: Recent vs previous period metrics
+- **Heatmaps**: Weekly patterns, hourly patterns, calendar view
 
 ## Configuration Management
 
@@ -121,98 +116,92 @@ flake8 .
 # Supabase Configuration (Required)
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key  # Backend only
 
-# External APIs
+# External APIs (Optional)
 API_KEY=Token your-reservo-api-key
 API_URL=https://reservo.cl/APIpublica/v2
 
-# Backend Configuration
-SECRET_KEY=your-secret-key
-DEBUG=false
-HOST=0.0.0.0
-PORT=8000
+# Development
+ENVIRONMENT=development  # Shows dev warnings
 ```
 
 ### Streamlit Configuration
-- **Config File**: `config/streamlit_config.toml`
-- **Deployment**: Optimized for Streamlit Cloud with secrets management
-- **Responsive Design**: Mobile-optimized dashboard components
+- **Page Config**: Wide layout, expanded sidebar
+- **Custom CSS**: Professional styling with gradients
+- **Resource Monitoring**: psutil integration for CPU/RAM tracking
 
-## Data Integration
-
-### External APIs
-- **Reservo API**: Professional and appointment data synchronization
-- **Rate Limits**: 5 requests/hour for external API calls
-- **Caching**: Response caching to minimize API usage
-
-### Database Schema
-- **Sessions Table**: Analysis session metadata and results
-- **Users Table**: Authentication and role management
-- **Audit Logs**: Comprehensive system activity tracking
-
-## File Structure Highlights
+## File Structure
 
 ```
 ceapsia/
-├── app.py                          # Main Streamlit application (v2.0 optimized)
-├── backend/app/main.py             # FastAPI backend entry point
+├── app.py                              # Main application (2007 lines)
 ├── src/
-│   ├── ui/optimized_frontend.py    # Reusable UI components
-│   ├── models/sistema_multi_modelo.py # ML ensemble system
-│   ├── core/mcp_session_manager.py # Session management
-│   └── services/automatizacion_completa.py # Complete automation pipeline
-├── scripts/development/run.py      # Development launcher
-├── database/migrations/            # SQL migration files
-└── docs/                          # Comprehensive documentation
+│   ├── ui/
+│   │   ├── dashboard_comparacion_v2.py # Dashboard v2 (refactored)
+│   │   ├── dashboard_analytics.py      # Analytics module
+│   │   └── components/                 # Modular components
+│   │       ├── data_loader.py
+│   │       ├── data_validator.py
+│   │       └── chart_visualizer.py
+│   ├── models/
+│   │   └── sistema_multi_modelo.py     # ML ensemble
+│   ├── auth/
+│   │   └── supabase_auth.py           # Authentication
+│   └── services/                       # Processing services
+├── requirements.txt                    # Dependencies
+└── docs/                              # Documentation
 ```
-
-## Testing Strategy
-
-### Frontend Testing
-- **Data Validation**: CSV/Excel format verification with sample data
-- **UI Components**: Interactive dashboard functionality across different datasets
-- **Model Performance**: Prediction accuracy against known datasets
-
-### Backend Testing  
-- **Unit Tests**: Individual component testing with pytest
-- **Integration Tests**: API endpoint testing with authentication
-- **Security Tests**: Rate limiting, file validation, error handling
-
-### System Testing
-- **End-to-End**: Complete workflow from data upload to predictions
-- **Performance**: Load testing with large datasets
-- **Security**: Authentication flows and data protection
-
-## Deployment Considerations
-
-### Streamlit Cloud Deployment
-- **Performance**: Optimized pipeline executes in ~5 seconds for large datasets
-- **Resource Monitoring**: Built-in CPU/RAM monitoring with psutil
-- **Progress Tracking**: Real-time pipeline stage logging and visual indicators
-- **Error Handling**: Graceful fallbacks and detailed error reporting
-
-### FastAPI Backend Deployment
-- **Container Ready**: Dockerizable FastAPI application
-- **Health Checks**: Built-in endpoint monitoring
-- **Scaling**: Async operations with proper resource management
 
 ## Common Workflows
 
-### Adding New ML Models
-1. Implement in `src/models/sistema_multi_modelo.py`
-2. Update ensemble weighting logic
-3. Add validation metrics
-4. Test with sample datasets
+### Running the Application
+1. Set environment variables or create `.env` file
+2. Install dependencies: `pip install -r requirements.txt`
+3. Run: `streamlit run app.py`
+4. Login with Supabase credentials
+5. Upload CSV/Excel file
+6. Pipeline executes automatically
+7. View results in Dashboard
 
-### Implementing New API Endpoints  
-1. Create router in `backend/app/api/routers/`
-2. Add authentication decorators
-3. Implement rate limiting
-4. Add comprehensive error handling
+### Adding New Analytics
+1. Implement in `src/ui/dashboard_analytics.py`
+2. Add new tab in `dashboard_comparacion_v2.py`
+3. Update navigation and logging
+4. Test with sample data
 
-### Security Updates
-1. Review `backend/app/core/` security modules
-2. Update rate limits and validation rules
-3. Test authentication flows
-4. Verify error message sanitization
+### Debugging Pipeline Issues
+1. Check console logs for detailed pipeline stages
+2. Verify data format matches requirements
+3. Monitor resource usage (CPU/RAM indicators)
+4. Review `st.session_state.resultados_pipeline` structure
+
+## Performance Optimization
+
+- **Large Datasets**: Automatic sampling for visualization (10k points)
+- **Pipeline Speed**: Optimized from minutes to ~5 seconds
+- **Memory Usage**: Efficient batch processing
+- **Caching**: Streamlit's `@st.cache_data` for expensive operations
+
+## Current Status
+
+✅ **Completed**:
+- Dashboard v2 with advanced analytics
+- Residual analysis implementation
+- Performance metrics with visualizations
+- Temporal heatmaps (3 types)
+- Stability and period comparison analysis
+- Complete removal of Dashboard v1
+- Field auto-detection system
+- Resource monitoring
+
+🚧 **In Development**:
+- Automated recommendations tab
+- Cross-analysis with user data
+- API integration improvements
+
+## Support
+
+For issues or questions:
+- GitHub: https://github.com/edgargomero/analisis_resultados
+- Email: soporte@ceapsi.cl

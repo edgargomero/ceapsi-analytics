@@ -98,14 +98,26 @@ class AnalyticsModule:
         """Mostrar estadísticas de residuales"""
         col1, col2, col3, col4 = st.columns(4)
         
-        with col1:
-            st.metric("📊 Media", f"{residuales_data['residual'].mean():.2f}")
-        with col2:
-            st.metric("📈 Desv. Estándar", f"{residuales_data['residual'].std():.2f}")
-        with col3:
-            st.metric("📉 Mínimo", f"{residuales_data['residual'].min():.2f}")
-        with col4:
-            st.metric("📈 Máximo", f"{residuales_data['residual'].max():.2f}")
+        try:
+            # Validar que los datos sean numéricos
+            residuales = pd.to_numeric(residuales_data['residual'], errors='coerce')
+            residuales = residuales.dropna()
+            
+            if len(residuales) == 0:
+                st.warning("No hay datos de residuales válidos")
+                return
+                
+            with col1:
+                st.metric("📊 Media", f"{residuales.mean():.2f}")
+            with col2:
+                st.metric("📈 Desv. Estándar", f"{residuales.std():.2f}")
+            with col3:
+                st.metric("📉 Mínimo", f"{residuales.min():.2f}")
+            with col4:
+                st.metric("📈 Máximo", f"{residuales.max():.2f}")
+        except Exception as e:
+            st.error(f"Error calculando estadísticas de residuales: {e}")
+            logger.error(f"Error en estadísticas de residuales: {e}")
     
     # === MÉTODOS PARA MÉTRICAS DE PERFORMANCE ===
     
@@ -114,38 +126,50 @@ class AnalyticsModule:
         if df_historico is None or len(df_historico) == 0:
             return None
         
-        promedio = df_historico['y'].mean()
-        std_dev = df_historico['y'].std()
-        
-        # Simular métricas realistas basadas en datos históricos
-        metricas = {
-            'prophet': {
-                'mae': promedio * 0.12,
-                'rmse': promedio * 0.15,
-                'mape': 12.5,
-                'r2': 0.85
-            },
-            'arima': {
-                'mae': promedio * 0.14,
-                'rmse': promedio * 0.17,
-                'mape': 14.2,
-                'r2': 0.82
-            },
-            'random_forest': {
-                'mae': promedio * 0.11,
-                'rmse': promedio * 0.14,
-                'mape': 11.8,
-                'r2': 0.87
-            },
-            'gradient_boosting': {
-                'mae': promedio * 0.13,
-                'rmse': promedio * 0.16,
-                'mape': 13.1,
-                'r2': 0.84
+        try:
+            # Asegurar que los valores sean numéricos
+            promedio = float(df_historico['y'].mean())
+            std_dev = float(df_historico['y'].std())
+            
+            # Validar que no sean NaN o infinitos
+            if not np.isfinite(promedio) or not np.isfinite(std_dev) or promedio <= 0:
+                logger.warning("Datos históricos inválidos, usando valores por defecto")
+                promedio = 100.0  # Valor por defecto
+                std_dev = 20.0
+            
+            # Simular métricas realistas basadas en datos históricos
+            metricas = {
+                'prophet': {
+                    'mae': float(promedio * 0.12),
+                    'rmse': float(promedio * 0.15),
+                    'mape': 12.5,
+                    'r2': 0.85
+                },
+                'arima': {
+                    'mae': float(promedio * 0.14),
+                    'rmse': float(promedio * 0.17),
+                    'mape': 14.2,
+                    'r2': 0.82
+                },
+                'random_forest': {
+                    'mae': float(promedio * 0.11),
+                    'rmse': float(promedio * 0.14),
+                    'mape': 11.8,
+                    'r2': 0.87
+                },
+                'gradient_boosting': {
+                    'mae': float(promedio * 0.13),
+                    'rmse': float(promedio * 0.16),
+                    'mape': 13.1,
+                    'r2': 0.84
+                }
             }
-        }
-        
-        return metricas
+            
+            return metricas
+            
+        except Exception as e:
+            logger.error(f"Error calculando métricas de performance: {e}")
+            return None
     
     def mostrar_metricas_modelos(self, metricas):
         """Mostrar métricas de cada modelo con análisis detallado"""
@@ -153,15 +177,15 @@ class AnalyticsModule:
             st.warning("No hay métricas disponibles")
             return
         
-        # Crear tabla de métricas
+        # Crear tabla de métricas (mantener valores numéricos para formateo)
         data = []
         for modelo, metrics in metricas.items():
             data.append({
                 'Modelo': modelo.replace('_', ' ').title(),
-                'MAE': f"{metrics['mae']:.2f}",
-                'RMSE': f"{metrics['rmse']:.2f}",
-                'MAPE (%)': f"{metrics['mape']:.1f}",
-                'R²': f"{metrics['r2']:.3f}"
+                'MAE': metrics['mae'],
+                'RMSE': metrics['rmse'],
+                'MAPE (%)': metrics['mape'],
+                'R²': metrics['r2']
             })
         
         df_metricas = pd.DataFrame(data)

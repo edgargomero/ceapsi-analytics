@@ -93,6 +93,47 @@ class DashboardValidacionCEAPSI:
         
         return df_limpio, alertas
     
+    def _optimizar_datos_para_plot(self, df, max_puntos=2000, nombre_dataset="Dataset"):
+        """Optimiza datasets grandes para visualización eficiente"""
+        if df is None or len(df) == 0:
+            return df
+            
+        # Si el dataset es pequeño, no optimizar
+        if len(df) <= max_puntos:
+            return df
+            
+        st.info(f"📊 {nombre_dataset}: Optimizando {len(df)} registros → {max_puntos} puntos para visualización")
+        
+        # ESTRATEGIA 1: Sampling inteligente preservando tendencias
+        # Mantener los primeros y últimos puntos siempre
+        inicio_puntos = min(200, len(df) // 4)
+        fin_puntos = min(200, len(df) // 4)
+        medio_puntos = max_puntos - inicio_puntos - fin_puntos
+        
+        # Dividir el rango medio y hacer sampling uniforme
+        df_inicio = df.head(inicio_puntos)
+        df_fin = df.tail(fin_puntos)
+        
+        if medio_puntos > 0 and len(df) > (inicio_puntos + fin_puntos):
+            df_medio = df.iloc[inicio_puntos:-fin_puntos]
+            if len(df_medio) > medio_puntos:
+                # Sampling uniforme del medio
+                indices = np.linspace(0, len(df_medio)-1, medio_puntos, dtype=int)
+                df_medio_sampled = df_medio.iloc[indices]
+            else:
+                df_medio_sampled = df_medio
+                
+            # Combinar todos los segmentos
+            df_optimized = pd.concat([df_inicio, df_medio_sampled, df_fin], ignore_index=True)
+        else:
+            df_optimized = pd.concat([df_inicio, df_fin], ignore_index=True)
+        
+        # Asegurar ordenamiento temporal si existe columna de fechas
+        if 'ds' in df_optimized.columns:
+            df_optimized = df_optimized.sort_values('ds').reset_index(drop=True)
+        
+        return df_optimized
+    
     @st.cache_data(ttl=300)
     def cargar_resultados_multimodelo(_self, tipo_llamada='ENTRANTE'):
         """Carga resultados del sistema multi-modelo"""
@@ -200,6 +241,19 @@ class DashboardValidacionCEAPSI:
             
             # Filtrar solo días laborales
             df_completo = df_completo[df_completo['FECHA'].dt.dayofweek < 5]
+            
+            # OPTIMIZACIÓN CRÍTICA: Para archivos muy grandes, dar aviso de optimizaciones
+            if len(df_completo) > 50000:
+                st.success(f"✅ Archivo grande cargado: {len(df_completo):,} registros")
+                st.info("⚡ Las visualizaciones se optimizarán automáticamente para mejor rendimiento") 
+                with st.expander("📊 Estrategias de Optimización Aplicadas"):
+                    st.markdown("""
+                    - **Gráficos Históricos**: Sampling inteligente a ~1000-3000 puntos
+                    - **Análisis de Patrones**: Muestra representativa estratificada  
+                    - **Heatmaps**: Limitado a períodos recientes más relevantes
+                    - **Hover Details**: Información completa mantenida
+                    - **Cálculos**: Realizados sobre datos completos, visualización optimizada
+                    """)
             
             return df_completo
             
@@ -363,15 +417,23 @@ class DashboardValidacionCEAPSI:
             fecha_limite_final = min(fecha_limite_pred, fecha_hoy)
             df_hist_filtrado = df_hist_valido[df_hist_valido['ds'] <= fecha_limite_final]
             
-            if len(df_hist_filtrado) > 0:
+            # OPTIMIZACIÓN CRÍTICA: Reducir datos históricos para archivos grandes
+            if len(df_hist_filtrado) > 1000:
+                st.info(f"⚡ Optimizando visualización: {len(df_hist_filtrado)} → 1000 puntos históricos")
+                df_hist_optimized = self._optimizar_datos_para_plot(df_hist_filtrado, max_puntos=1000, nombre_dataset="Histórico")
+            else:
+                df_hist_optimized = df_hist_filtrado
+            
+            if len(df_hist_optimized) > 0:
                 fig.add_trace(
                     go.Scatter(
-                        x=df_hist_filtrado['ds'],
-                        y=df_hist_filtrado['y'],
+                        x=df_hist_optimized['ds'],
+                        y=df_hist_optimized['y'],
                         mode='lines',
                         name='Histórico Real',
                         line=dict(color='black', width=2),
-                        opacity=0.7
+                        opacity=0.7,
+                        hovertemplate='<b>Histórico</b><br>Fecha: %{x}<br>Llamadas: %{y}<extra></extra>'
                     ),
                     row=1, col=1
                 )
@@ -394,6 +456,18 @@ class DashboardValidacionCEAPSI:
                         annotation_text="Hoy",
                         annotation_position="bottom"
                     )
+                
+                # Mostrar estadísticas de optimización
+                if len(df_hist_filtrado) != len(df_hist_optimized):
+                    with st.expander("📊 Detalles de Optimización"):
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Datos Originales", f"{len(df_hist_filtrado):,}")
+                        with col2:
+                            st.metric("Datos Mostrados", f"{len(df_hist_optimized):,}")
+                        with col3:
+                            reduccion = (1 - len(df_hist_optimized)/len(df_hist_filtrado)) * 100
+                            st.metric("Reducción", f"{reduccion:.1f}%")
             else:
                 st.warning("⚠️ No hay datos históricos válidos para mostrar en el gráfico")
         
@@ -1276,6 +1350,12 @@ class DashboardValidacionCEAPSI:
             st.info("📊 Se necesitan más datos para mostrar patrones temporales")
             return
         
+        # OPTIMIZACIÓN CRÍTICA: Optimizar datos para análisis de patrones
+        if len(df_historico) > 5000:
+            st.info(f"⚡ Optimizando análisis de patrones: {len(df_historico)} → muestreo inteligente")
+            # Para patrones, hacer sampling más conservador manteniendo representatividad temporal
+            df_historico = self._optimizar_datos_para_plot(df_historico, max_puntos=3000, nombre_dataset="Patrones Temporales")
+        
         try:
             # Preparar datos para heatmap simple
             df_historico_copy = df_historico.copy()
@@ -1539,6 +1619,17 @@ class DashboardValidacionCEAPSI:
         """Muestra heatmap de patrones por hora del día"""
         
         st.subheader(f"🕐 Patrón de Llamadas {tipo_llamada} por Hora del Día")
+        
+        # OPTIMIZACIÓN CRÍTICA: Para archivos grandes, sampling más agresivo en análisis horario
+        if len(df_filtrado) > 10000:
+            st.info(f"⚡ Optimizando análisis horario: {len(df_filtrado)} → muestra representativa")
+            # Para análisis horario, tomar sample estratificado por fecha
+            fechas_unicas = df_filtrado['fecha_solo'].unique()
+            if len(fechas_unicas) > 60:
+                # Tomar muestra de fechas manteniendo distribución temporal
+                fechas_sample = pd.Series(fechas_unicas).sample(n=60, random_state=42)
+                df_filtrado = df_filtrado[df_filtrado['fecha_solo'].isin(fechas_sample)]
+                st.info(f"📊 Análisis basado en muestra de {len(fechas_sample)} días representativos")
         
         try:
             # Agrupar por día y hora

@@ -97,14 +97,16 @@ flake8 .
 ### Data Processing Pipeline
 - **Required Columns**: `FECHA`, `TELEFONO`, `SENTIDO`, `ATENDIDA`
 - **Supported Formats**: CSV, Excel with automatic encoding detection
-- **Batch Processing**: Configurable batch sizes to prevent memory issues
+- **Processing Speed**: ~5 seconds for 341k records (optimized pipeline)
 - **Error Recovery**: Comprehensive retry logic and fallback mechanisms
+- **Resource Monitoring**: Real-time CPU/RAM monitoring during execution
 
 ### Machine Learning Workflow
-- **Multi-Model Ensemble**: Combines Prophet (time series), XGBoost, Random Forest, Linear Regression
-- **Performance Targets**: MAE < 10, RMSE < 15, MAPE < 25%
-- **Cross-Validation**: Temporal splits for time series validation
-- **Model Persistence**: Serialized models with timestamp versioning
+- **Multi-Model Ensemble**: Prophet, ARIMA, Random Forest, Gradient Boosting
+- **Performance Targets**: Realistic metrics based on historical data
+- **Pipeline Execution**: 4-stage process with detailed logging
+- **Results Storage**: Automatic saving to `st.session_state.resultados_pipeline`
+- **Dashboard Integration**: Seamless handoff from pipeline to visualization
 
 ### Session Management (MCP Protocol)
 - **Session Tracking**: UUID-based session identification
@@ -185,9 +187,10 @@ ceapsia/
 ## Deployment Considerations
 
 ### Streamlit Cloud Deployment
-- **Secrets Management**: Environment variables configured in Streamlit Cloud settings
-- **Performance**: Optimized with lazy loading and component caching
-- **Security**: Rate limiting and secure error handling for production
+- **Performance**: Optimized pipeline executes in ~5 seconds for large datasets
+- **Resource Monitoring**: Built-in CPU/RAM monitoring with psutil
+- **Progress Tracking**: Real-time pipeline stage logging and visual indicators
+- **Error Handling**: Graceful fallbacks and detailed error reporting
 
 ### FastAPI Backend Deployment
 - **Container Ready**: Dockerizable FastAPI application

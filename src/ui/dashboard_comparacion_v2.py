@@ -33,8 +33,13 @@ class DashboardValidacionCEAPSI_V2:
         self.data_loader = DataLoader()
         self.chart_visualizer = ChartVisualizer(data_validator=self.data_validator)
         
-        # Path para archivos
-        self.archivo_datos_manual = None
+        # Path para archivos - usar de session_state si está disponible
+        if hasattr(st.session_state, 'archivo_datos') and st.session_state.archivo_datos:
+            self.archivo_datos_manual = st.session_state.archivo_datos
+            logger.info(f"📁 Usando archivo de session_state: {self.archivo_datos_manual}")
+        else:
+            self.archivo_datos_manual = None
+            logger.info("📁 No hay archivo en session_state")
         
         logger.info("✅ Componentes inicializados correctamente")
     
@@ -121,6 +126,25 @@ class DashboardValidacionCEAPSI_V2:
         
         if df_completo is None:
             st.error("❌ No se pudieron cargar los datos")
+            return
+        
+        # Verificar si hay predicciones disponibles
+        if df_predicciones is None or resultados is None:
+            st.warning("⚠️ No hay predicciones disponibles aún")
+            st.info("🔄 Por favor ejecuta primero el pipeline de análisis para generar predicciones")
+            
+            # Mostrar solo datos históricos si están disponibles
+            if df_completo is not None:
+                st.subheader("📊 Datos Históricos Disponibles")
+                df_historico = self._procesar_datos_historicos(df_completo, tipo_llamada)
+                if df_historico is not None:
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Total Registros", f"{len(df_completo):,}")
+                    with col2:
+                        st.metric("Días de Datos", f"{df_historico['ds'].nunique()}")
+                    with col3:
+                        st.metric("Promedio Diario", f"{df_historico['y'].mean():.0f}")
             return
         
         # Procesar datos históricos para el tipo de llamada

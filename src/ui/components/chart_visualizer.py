@@ -7,6 +7,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import logging
+import numpy as np
 from datetime import datetime
 
 # Configurar logger
@@ -60,10 +61,15 @@ class ChartVisualizer:
             logger.info(f"   - Total registros históricos: {len(df_historico)}")
             
             # Validar y limpiar datos históricos
-            df_hist_filtrado, alertas = self.data_validator.validar_integridad_cientifica_datos(
-                df_historico, 
-                "Datos Históricos"
-            )
+            if self.data_validator:
+                df_hist_filtrado, alertas = self.data_validator.validar_integridad_cientifica_datos(
+                    df_historico, 
+                    "Datos Históricos"
+                )
+            else:
+                # Si no hay validador, usar datos como están
+                df_hist_filtrado = df_historico
+                alertas = []
             
             # Mostrar alertas de validación
             for alerta in alertas:
@@ -80,11 +86,16 @@ class ChartVisualizer:
             if len(df_hist_filtrado) > 50000:
                 logger.warning(f"⚠️ Optimizando visualización: {len(df_hist_filtrado)} → 10000 puntos")
                 st.info(f"⚡ Optimizando visualización: {len(df_hist_filtrado)} → 10000 puntos históricos")
-                df_hist_optimized = self.data_validator.optimizar_datos_para_plot(
-                    df_hist_filtrado, 
-                    max_puntos=10000, 
-                    nombre_dataset="Histórico"
-                )
+                if self.data_validator:
+                    df_hist_optimized = self.data_validator.optimizar_datos_para_plot(
+                        df_hist_filtrado, 
+                        max_puntos=10000, 
+                        nombre_dataset="Histórico"
+                    )
+                else:
+                    # Si no hay validador, hacer sampling simple
+                    indices = np.linspace(0, len(df_hist_filtrado)-1, 10000, dtype=int)
+                    df_hist_optimized = df_hist_filtrado.iloc[indices]
             else:
                 df_hist_optimized = df_hist_filtrado
                 logger.info(f"   - No requiere optimización: {len(df_hist_optimized)} puntos")

@@ -152,7 +152,16 @@ class DataLoader:
             if not archivos:
                 logger.warning(f"📁 No se encontraron resultados para {tipo_llamada}")
                 st.info(f"📁 No se encontraron resultados para {tipo_llamada}. Creando predicciones de ejemplo...")
-                return _self._crear_resultados_ejemplo(tipo_llamada)
+                # En lugar de crear datos de ejemplo, retornar desde session_state si existe
+                if hasattr(st.session_state, 'resultados_pipeline') and st.session_state.resultados_pipeline:
+                    logger.info("📁 Usando resultados del pipeline ejecutado")
+                    return self._procesar_resultados_pipeline(st.session_state.resultados_pipeline, tipo_llamada)
+                else:
+                    logger.warning("⚠️ No hay resultados del pipeline disponibles")
+                    st.warning("⚠️ No hay resultados del pipeline para mostrar")
+                    st.info("🔄 El entrenamiento de modelos está en proceso. Por favor espera a que termine el procesamiento completo.")
+                    st.info("⏱️ El tiempo de entrenamiento depende del tamaño de tus datos. Típicamente toma entre 1-5 minutos.")
+                    return None, None
             
             archivo_reciente = sorted(archivos)[-1]
             logger.info(f"📁 Usando archivo: {archivo_reciente}")
@@ -171,4 +180,66 @@ class DataLoader:
         except Exception as e:
             logger.error(f"❌ Error cargando resultados: {e}")
             st.error(f"Error cargando resultados: {e}")
-            return _self._crear_resultados_ejemplo(tipo_llamada)
+            # En lugar de crear datos de ejemplo, retornar None para que se maneje apropiadamente
+            return None, None
+    
+    def _procesar_resultados_pipeline(self, resultados_pipeline, tipo_llamada):
+        """Procesa los resultados del pipeline ejecutado"""
+        try:
+            logger.info(f"📊 Procesando resultados del pipeline para {tipo_llamada}")
+            logger.info(f"   Estructura de resultados: {list(resultados_pipeline.keys()) if isinstance(resultados_pipeline, dict) else 'No es dict'}")
+            
+            # Los resultados del pipeline ya vienen en el formato correcto
+            if isinstance(resultados_pipeline, dict):
+                # El pipeline guarda las predicciones bajo la clave 'predicciones' que es un dict con 'entrante' y 'saliente'
+                if 'predicciones' in resultados_pipeline:
+                    predicciones_dict = resultados_pipeline['predicciones']
+                    key_tipo = tipo_llamada.lower()
+                    
+                    # Buscar predicciones para el tipo específico
+                    predicciones = None
+                    if key_tipo in predicciones_dict:
+                        predicciones = predicciones_dict[key_tipo]
+                    elif key_tipo == 'entrante' and 'entrante' in predicciones_dict:
+                        predicciones = predicciones_dict['entrante']
+                    elif key_tipo == 'saliente' and 'saliente' in predicciones_dict:
+                        predicciones = predicciones_dict['saliente']
+                    
+                    if predicciones:
+                        logger.info(f"   Encontradas {len(predicciones)} predicciones para {tipo_llamada}")
+                        
+                        # Convertir a DataFrame si no lo es
+                        if isinstance(predicciones, pd.DataFrame):
+                            df_pred = predicciones
+                        else:
+                            df_pred = pd.DataFrame(predicciones)
+                        
+                        # Asegurar que las fechas sean datetime
+                        if 'ds' in df_pred.columns:
+                            df_pred['ds'] = pd.to_datetime(df_pred['ds'])
+                        
+                        # Crear estructura de resultados compatible
+                        resultados = {
+                            'predicciones': df_pred.to_dict('records'),
+                            'metricas': resultados_pipeline.get('metricas', {}).get(key_tipo, {}),
+                            'timestamp': datetime.now().isoformat()
+                        }
+                        
+                        logger.info(f"✅ Procesados {len(df_pred)} registros de predicciones")
+                        logger.info(f"   Columnas disponibles: {list(df_pred.columns)}")
+                        return resultados, df_pred
+                    else:
+                        logger.warning(f"⚠️ No se encontraron predicciones para {tipo_llamada}")
+                        return None, None
+                else:
+                    logger.warning(f"⚠️ No se encontró la clave 'predicciones' en los resultados")
+                    return None, None
+            else:
+                logger.error("❌ Formato de resultados no válido")
+                return None, None
+                
+        except Exception as e:
+            logger.error(f"❌ Error procesando resultados del pipeline: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None, None

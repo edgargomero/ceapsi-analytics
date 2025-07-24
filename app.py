@@ -146,14 +146,14 @@ except ImportError as e:
 
 # Configuración de la página principal optimizada
 st.set_page_config(
-    page_title="CEAPSI - Sistema de Predicción de Llamadas",
+    page_title="CEAPSI - Análisis Inteligente",
     page_icon="📞",
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
         'Get Help': 'https://github.com/edgargomero/analisis_resultados',
         'Report a bug': 'https://github.com/edgargomero/analisis_resultados/issues',
-        'About': "CEAPSI - Sistema de Predicción Inteligente de Llamadas v2.0"
+        'About': "CEAPSI - Análisis de Datos Inteligente v2.0"
     }
 )
 
@@ -1208,7 +1208,7 @@ def mostrar_progreso_pipeline_simple():
     elif st.session_state.get('datos_cargados', False):
         progress = st.progress(0.5, text="⚙️ Pipeline ejecutándose...")
     else:
-        st.info("📁 Carga un archivo para comenzar")
+        st.info("📁 Carga archivo")
 
 def mostrar_progreso_pipeline():
     """Muestra el progreso simplificado del pipeline"""
@@ -1326,7 +1326,7 @@ def mostrar_progreso_pipeline_complejo():
     elif st.session_state.get('datos_cargados', False):
         st.info("📊 Datos cargados - Pipeline se ejecuta automáticamente al cargar archivo")
     else:
-        st.info("📁 Carga datos desde el panel lateral")
+        st.info("📁 Panel lateral →")
     
     return completados, len(pasos)
 
@@ -1538,13 +1538,13 @@ def main():
             <div style="
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
-                padding: 20px 30px;
-                border-radius: 15px;
+                padding: 15px 20px;
+                border-radius: 10px;
                 text-align: center;
-                margin-bottom: 20px;
+                margin-bottom: 15px;
             ">
-                <h1 style="margin: 0; font-size: 2.5rem;">📞 CEAPSI</h1>
-                <p style="margin: 10px 0 0 0; opacity: 0.9;">Sistema de Predicción Inteligente de Llamadas</p>
+                <h1 style="margin: 0; font-size: 1.8rem;">📞 CEAPSI</h1>
+                <p style="margin: 3px 0 0 0; opacity: 0.85; font-size: 0.85rem;">Análisis de Datos Inteligente</p>
             </div>
             """, unsafe_allow_html=True)
             
@@ -1559,7 +1559,7 @@ def main():
             else:
                 col1, col2, col3 = st.columns([1, 2, 1])
                 with col2:
-                    st.info("📁 Carga datos → Panel lateral")
+                    st.info("📁 Panel lateral →")
     elif pagina == "🔧 Preparación de Datos":
         if PREP_DATOS_AVAILABLE:
             mostrar_preparacion_datos()

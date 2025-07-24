@@ -119,19 +119,26 @@ class ChartVisualizer:
                     row=1, col=1
                 )
                 
-                # Agregar línea vertical separadora
+                # Agregar marcador visual para separar histórico de predicciones
                 try:
-                    fecha_corte = pd.to_datetime(df_predicciones['ds'].min())
-                    fig.add_vline(
-                        x=fecha_corte, 
-                        line_dash="dash", 
-                        line_color="gray",
-                        annotation_text="Inicio Predicciones",
-                        annotation_position="top left",
+                    fecha_corte = df_predicciones['ds'].min()
+                    # En lugar de vline, usar un scatter point como marcador
+                    fig.add_trace(
+                        go.Scatter(
+                            x=[fecha_corte],
+                            y=[df_hist_optimized['y'].iloc[-1] if len(df_hist_optimized) > 0 else 0],
+                            mode='markers+text',
+                            marker=dict(size=12, color='orange', symbol='diamond'),
+                            text=['📅 Inicio Predicciones'],
+                            textposition='top center',
+                            name='Separador',
+                            showlegend=False,
+                            hovertemplate='<b>Inicio Predicciones</b><br>Fecha: %{x}<extra></extra>'
+                        ),
                         row=1, col=1
                     )
                 except Exception as e:
-                    logger.warning(f"⚠️ No se pudo agregar línea separadora: {e}")
+                    logger.debug(f"Marcador visual omitido: {e}")
                 
                 # Mostrar estadísticas de optimización
                 if len(df_hist_filtrado) != len(df_hist_optimized):
@@ -218,17 +225,41 @@ class ChartVisualizer:
             height=700,
             hovermode='x unified',
             title={
-                'text': "Análisis Detallado de Predicciones",
+                'text': "📊 Análisis Predictivo de Llamadas",
                 'x': 0.5,
-                'xanchor': 'center'
+                'xanchor': 'center',
+                'font': {'size': 18}
             },
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
                 y=1.02,
                 xanchor="right",
-                x=1
-            )
+                x=1,
+                bgcolor="rgba(255,255,255,0.8)",
+                bordercolor="rgba(0,0,0,0.2)",
+                borderwidth=1
+            ),
+            # Mejorar navegación
+            xaxis=dict(
+                rangeslider=dict(visible=True, thickness=0.05),
+                rangeselector=dict(
+                    buttons=list([
+                        dict(count=30, label="30D", step="day", stepmode="backward"),
+                        dict(count=90, label="3M", step="day", stepmode="backward"),
+                        dict(count=180, label="6M", step="day", stepmode="backward"),
+                        dict(step="all", label="Todo")
+                    ]),
+                    bgcolor="rgba(255,255,255,0.8)",
+                    bordercolor="rgba(0,0,0,0.2)",
+                    borderwidth=1
+                ),
+                type='date'
+            ),
+            # Mejorar grid y apariencia
+            plot_bgcolor='rgba(248,249,250,0.8)',
+            paper_bgcolor='white',
+            margin=dict(l=60, r=60, t=80, b=60)
         )
         
         logger.info("✅ Gráfico completado")

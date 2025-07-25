@@ -249,61 +249,29 @@ class SupabaseAuthManager:
             </div>
             """, unsafe_allow_html=True)
         
-        # Tabs para login y registro
-        login_tab, register_tab = st.tabs(["🔐 Iniciar Sesión", "📝 Registrarse"])
-        
-        with login_tab:
-            with st.form("login_form", clear_on_submit=False):
-                st.markdown("### Iniciar Sesión")
-                
-                email = st.text_input("📧 Email", placeholder="usuario@ceapsi.cl")
-                password = st.text_input("🔒 Contraseña", type="password", placeholder="Ingrese su contraseña")
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    login_button = st.form_submit_button("🚀 Ingresar", use_container_width=True, type="primary")
-                with col2:
-                    st.form_submit_button("❌ Limpiar", use_container_width=True)
+        # Solo formulario de login, sin registro
+        with st.form("login_form", clear_on_submit=False):
+            st.markdown("### 🔐 Iniciar Sesión")
             
-            if login_button and email and password:
-                with st.spinner("Verificando credenciales..."):
-                    user = self.sign_in(email, password)
-                    
-                    if user:
-                        st.success(f"✅ Bienvenido!")
-                        time.sleep(1)
-                        return user
-                    else:
-                        st.error("❌ Credenciales incorrectas")
-        
-        with register_tab:
-            with st.form("register_form", clear_on_submit=False):
-                st.markdown("### Crear Cuenta Nueva")
-                
-                reg_email = st.text_input("📧 Email", placeholder="nuevo@ceapsi.cl", key="reg_email")
-                reg_name = st.text_input("👤 Nombre Completo", placeholder="Juan Pérez", key="reg_name")
-                reg_role = st.selectbox("🎭 Rol", ["viewer", "analista"], key="reg_role")
-                reg_password = st.text_input("🔒 Contraseña", type="password", placeholder="Mínimo 6 caracteres", key="reg_password")
-                reg_confirm = st.text_input("🔒 Confirmar Contraseña", type="password", placeholder="Repita la contraseña", key="reg_confirm")
-                
-                register_button = st.form_submit_button("📝 Registrarse", use_container_width=True, type="primary")
+            email = st.text_input("📧 Email", placeholder="usuario@ceapsi.cl")
+            password = st.text_input("🔒 Contraseña", type="password", placeholder="Ingrese su contraseña")
             
-            if register_button and all([reg_email, reg_name, reg_password, reg_confirm]):
-                if reg_password != reg_confirm:
-                    st.error("❌ Las contraseñas no coinciden")
-                elif len(reg_password) < 6:
-                    st.error("❌ La contraseña debe tener al menos 6 caracteres")
+            col1, col2 = st.columns(2)
+            with col1:
+                login_button = st.form_submit_button("🚀 Ingresar", use_container_width=True, type="primary")
+            with col2:
+                st.form_submit_button("❌ Limpiar", use_container_width=True)
+        
+        if login_button and email and password:
+            with st.spinner("Verificando credenciales..."):
+                user = self.sign_in(email, password)
+                
+                if user:
+                    st.success(f"✅ Bienvenido!")
+                    time.sleep(1)
+                    return user
                 else:
-                    with st.spinner("Creando cuenta..."):
-                        user = self.sign_up(reg_email, reg_password, {
-                            'name': reg_name,
-                            'role': reg_role
-                        })
-                        
-                        if user:
-                            st.success("✅ Cuenta creada exitosamente! Verifica tu email.")
-                        else:
-                            st.error("❌ Error creando cuenta")
+                    st.error("❌ Credenciales incorrectas")
         
         # Información de ayuda
         with st.expander("ℹ️ ¿Necesita ayuda?"):
@@ -316,14 +284,17 @@ class SupabaseAuthManager:
             - Email: soporte@ceapsi.cl
             
             **Registro de nuevos usuarios:**
-            - Solo con autorización del administrador
-            - Use la pestaña "Registrarse" si tiene permisos
-            - Verificación de email requerida
+            - Los nuevos usuarios deben ser creados por el administrador
+            - Contacte a soporte@ceapsi.cl para solicitar acceso
+            - Se requiere autorización previa
             
             **Política de Seguridad:**
             - Contraseñas mínimo 6 caracteres
             - Sesiones seguras con Supabase Auth
-            - Acceso basado en roles
+            - Acceso basado en roles (Admin, Analista, Viewer)
+            
+            **¿Olvidó su contraseña?**
+            - Contacte al administrador para restablecer
             """)
         
         return None

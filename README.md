@@ -157,13 +157,81 @@ ceapsia/
 - **Memoria**: Procesamiento eficiente por lotes
 - **Cache**: Datos en session_state, 5 min TTL
 
+## 🌟 Flujo de Desarrollo con Git
+
+### Ramas Principales
+- **`main`**: Rama principal con código estable (producción)
+- **`development`**: Rama de desarrollo para pruebas y nuevas funciones
+
+### Flujo de Trabajo Recomendado
+
+#### 1. Desarrollo Diario
+```bash
+# Cambiar a rama de desarrollo
+git checkout development
+
+# Actualizar con últimos cambios
+git pull origin development
+
+# Hacer cambios y commits
+git add .
+git commit -m "Update: descripción del cambio"
+git push origin development
+```
+
+#### 2. Nueva Funcionalidad
+```bash
+# Crear rama desde development
+git checkout development
+git checkout -b feature/nombre-descriptivo
+
+# Desarrollar y hacer commits
+git add .
+git commit -m "Add: nueva funcionalidad"
+
+# Subir rama feature
+git push origin feature/nombre-descriptivo
+
+# Merge a development cuando esté listo
+git checkout development
+git merge feature/nombre-descriptivo
+git push origin development
+```
+
+#### 3. Actualizar Producción
+```bash
+# Solo cuando development esté probado y estable
+git checkout main
+git merge development
+git push origin main
+```
+
+### Comandos Útiles
+```bash
+# Ver rama actual
+git branch
+
+# Ver todas las ramas (locales y remotas)
+git branch -a
+
+# Ver diferencias entre ramas
+git diff main development
+
+# Eliminar rama local
+git branch -d feature/nombre
+
+# Ver historial de commits
+git log --oneline --graph --all
+```
+
 ## 🤝 Contribuir
 
 1. Fork el proyecto
-2. Crear feature branch (`git checkout -b feature/NuevaCaracteristica`)
-3. Commit cambios (`git commit -m 'Add: Nueva característica'`)
-4. Push al branch (`git push origin feature/NuevaCaracteristica`)
-5. Crear Pull Request
+2. Clonar tu fork (`git clone https://github.com/tu-usuario/ceapsi-analytics.git`)
+3. Crear rama desde `development` (`git checkout -b feature/NuevaCaracteristica`)
+4. Commit cambios (`git commit -m 'Add: Nueva característica'`)
+5. Push al branch (`git push origin feature/NuevaCaracteristica`)
+6. Crear Pull Request hacia `development` (no a `main`)
 
 ## 📝 Licencia
 

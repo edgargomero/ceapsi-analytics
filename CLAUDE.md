@@ -8,6 +8,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Key Commands
 
+### Git Workflow Commands
+```bash
+# Development branch (for daily work)
+git checkout development
+git pull origin development
+
+# Feature branches (for new features)
+git checkout -b feature/feature-name
+git push origin feature/feature-name
+
+# Production updates (only stable code)
+git checkout main
+git merge development
+git push origin main
+```
+
 ### Streamlit Application
 ```bash
 # Main application
@@ -183,6 +199,44 @@ ceapsia/
 - **Memory Usage**: Efficient batch processing
 - **Caching**: Streamlit's `@st.cache_data` for expensive operations
 
+## Development Workflow
+
+### Branch Strategy
+- **`main`**: Production-ready stable code
+- **`development`**: Active development and testing
+- **`feature/*`**: Individual feature development
+
+### Development Process
+1. **Always work in `development` or feature branches**
+   ```bash
+   git checkout development
+   git pull origin development
+   ```
+
+2. **Create feature branches for new functionality**
+   ```bash
+   git checkout -b feature/analytics-improvements
+   ```
+
+3. **Test thoroughly before merging to main**
+   - Run all validation scripts
+   - Test with sample data
+   - Verify dashboard functionality
+
+4. **Merge to production only when stable**
+   ```bash
+   git checkout main
+   git merge development
+   git push origin main
+   ```
+
+### Best Practices
+- Never commit directly to `main`
+- Always pull latest changes before starting work
+- Use descriptive branch names
+- Test in `development` before production
+- Keep feature branches small and focused
+
 ## Current Status
 
 ✅ **Completed**:
@@ -194,6 +248,7 @@ ceapsia/
 - Complete removal of Dashboard v1
 - Field auto-detection system
 - Resource monitoring
+- Git workflow with branch strategy
 
 🚧 **In Development**:
 - Automated recommendations tab
